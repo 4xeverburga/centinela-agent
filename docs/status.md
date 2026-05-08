@@ -2,7 +2,7 @@
 
 **Project**: {NOMBRE_DEL_PROYECTO}
 **Date**: 2026-04-28
-**Phase**: {POC | Development | Production}
+**Phase**: Develpment 
 
 ## Team Ownership
 

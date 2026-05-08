@@ -49,7 +49,13 @@ La solución es un **Bot de Telegram** que actúa como colector de datos, proces
 
 1. **Ingesta y Pre-procesamiento Ligero (Tier 1 - CPU):**
 * 
-**Razón:** Para no desperdiciar recursos de GPU, se utiliza una capa con **Numpy y Pillow** para realizar una deduplicación vectorial rápida y detección de desenfoque. Si una imagen es idéntica a una anterior o no contiene información útil, se descarta antes de entrar a la cola.
+**Razón:** Para no desperdiciar recursos de GPU, los lotes de imágenes se procesan en CPU con un pipeline de cinco pasos antes de entrar a la cola. **Ninguna imagen se persiste en disco del servidor**: se descarga desde la API de Telegram a memoria, se mantiene viva mientras dure el procesamiento y se libera. Solo se persiste el `file_id` de Telegram (la propia CDN actúa como almacenamiento).
+  1. **Descarga in-memory** del binario vía `getFile` de Telegram (bytes en `BytesIO`).
+  2. **Compresión / normalización** con Pillow para estandarizar calidad (ej. recodificar a JPEG ~75 de calidad y redimensionar el lado mayor a ~1280 px). El pre-procesamiento y la identificación por parte de Gemma no requieren calidad máxima; esto reduce el costo de embedding, el payload hacia vLLM y la latencia general.
+  3. **Embedding ligero** por imagen (ej. CLIP pequeño, MobileNet o `imagehash` perceptual) sobre la versión comprimida.
+  4. **Clustering por similitud vectorial** (umbral de distancia coseno / `DBSCAN`) para agrupar fotos casi-duplicadas del mismo equipo o ángulo, y **score de nitidez** por imagen mediante varianza del Laplaciano (OpenCV/Pillow).
+  5. **Colapso del cluster** conservando como representante la imagen con mayor nitidez (desempate por mayor resolución).
+  Solo el representante de cada cluster entra a `ProcessingQueue`. Los miembros descartados se referencian por `file_id` con su `cluster_id` y `is_representative=false` para trazabilidad/auditoría, sin almacenar el binario. Si un cluster (incluso de una sola imagen) no supera el umbral mínimo absoluto de nitidez, se marca como **evidencia insuficiente** y dispara un Human-in-the-Loop pidiendo al técnico repetir la foto.
 
 
 
@@ -88,10 +94,10 @@ Este prompt se ejecuta durante el procesamiento por lotes (Batch) para cada imag
 
 **Inputs del Modelo:**
 
-1. **[Imagen Actual]:** Foto técnica enviada por el operario.
-2. **[Imagen Plano]:** Mapa del local cargado por el administrador.
-3. **[Ventana de Chat]:** Lista de los últimos 5 mensajes de texto, incluyendo `nombre_usuario` y `rol` (Técnico, Asistente, Administrador).
-4. **[Metadata de Contexto]:** Resumen textual de las últimas 5 categorías procesadas (ej: "Sistema de Alarma contra Incendios").
+1. **[Imagen Actual]:** Foto técnica enviada por el operario (representante del cluster tras el pre-procesamiento).
+2. **[Imagen Plano]:** Mapa del local cargado por el administrador, usado solo como referencia secundaria de ubicación.
+3. **[Ventana de Chat]:** Mensajes de texto del grupo desde la última imagen procesada del **mismo técnico**, con tope de **5 mensajes o 30 minutos** (lo que ocurra primero). Las imágenes no cuentan como mensaje. Cada mensaje incluye `nombre_usuario` y `rol` (Técnico, Asistente, Administrador).
+4. **[Metadata de Contexto]:** Resumen textual derivado de los **JSON de salida** de las últimas N inspecciones procesadas en el mismo proyecto (Gemma **no** vuelve a consumir imágenes previas, solo sus salidas estructuradas). Esto implica que los grupos de imágenes se procesan de forma **secuencial temporal** en la cola para preservar el contexto narrativo.
 
 **Instrucciones de Razonamiento:**
 
@@ -125,32 +131,67 @@ Este prompt se ejecuta durante el procesamiento por lotes (Batch) para cada imag
 
 ## 🗄️ Modelo de Datos (SQLite para el MVP)
 
-### 1. Tabla: `ProcessingQueue`
+> Convención: `project_id` es la clave de negocio principal en todo el sistema. Reemplaza al antiguo `session_id` y se propaga a todas las tablas.
+
+### 1. Tabla: `Project`
+
+Entidad raíz creada al ejecutar `/iniciar_proyecto` y cerrada con `/finalizar_proyecto`.
+
+* `project_id`: TEXT PRIMARY KEY
+* `chat_id`: TEXT (grupo de Telegram del local)
+* `local_name`: TEXT
+* `floor_plan_file_id`: TEXT (referencia al plano cargado por el admin en chat privado)
+* `admin_user_id`: TEXT
+* `status`: TEXT (ACTIVE, CLOSED, AUTO_CLOSED)
+* `started_at`: DATETIME
+* `finished_at`: DATETIME
+* `closure_reason`: TEXT (manual / timeout)
+
+### 2. Tabla: `User`
+
+Catálogo de miembros conocidos del chat (evita repetir `sender_role` como texto en cada mensaje).
+
+* `telegram_user_id`: TEXT PRIMARY KEY
+* `display_name`: TEXT
+* `role`: TEXT (TECNICO, ASISTENTE, ADMIN)
+
+### 3. Tabla: `ProcessingQueue`
 
 Gestiona el flujo de trabajo asíncrono para la instancia de AMD.
 
 * `id`: INTEGER PRIMARY KEY
+* `project_id`: TEXT (FK → Project)
 * `file_id`: TEXT (ID de Telegram para recuperar el archivo)
 * `chat_id`: TEXT
-* `status`: TEXT (PENDING, PROCESSING, COMPLETED, FAILED)
+* `cluster_id`: TEXT (agrupamiento del pre-procesamiento)
+* `is_representative`: BOOLEAN (true = entra a inferencia; false = archivada por trazabilidad)
+* `sharpness_score`: REAL
+* `status`: TEXT (PENDING, PROCESSING, COMPLETED, FAILED, INSUFFICIENT_EVIDENCE)
+* `attempts`: INTEGER
+* `last_error`: TEXT
+* `worker_id`: TEXT
 * `received_at`: DATETIME
+* `processed_at`: DATETIME
+* UNIQUE(`project_id`, `file_id`) — idempotencia ante reentregas de Telegram.
 
-### 2. Tabla: `ProcessedHistory`
+### 4. Tabla: `ProcessedHistory`
 
-Historial de mensajes para el refinamiento final del informe.
+Historial de mensajes de texto para el refinamiento final del informe.
 
 * `id`: INTEGER PRIMARY KEY
-* `session_id`: TEXT
-* `sender_name`: TEXT
-* `sender_role`: TEXT (TECNICO, ASISTENTE, ADMIN)
+* `project_id`: TEXT (FK → Project)
+* `telegram_user_id`: TEXT (FK → User)
 * `message_text`: TEXT
 * `timestamp`: DATETIME
 
-### 3. Tabla: `StructuredInspectionData`
+### 5. Tabla: `StructuredInspectionData`
 
 Salida final procesada para cada punto de inspección.
 
 * `id`: INTEGER PRIMARY KEY
+* `project_id`: TEXT (FK → Project)
+* `queue_id`: INTEGER (FK → ProcessingQueue)
+* `image_file_id`: TEXT
 * `item_id`: TEXT
 * `category`: TEXT
 * `inspection_status`: TEXT (DURANTE / DESPUES)
@@ -159,6 +200,59 @@ Salida final procesada para cada punto de inspección.
 * `tech_observation`: TEXT
 * `ai_system_observation`: TEXT
 * `is_suspicious`: BOOLEAN
+* `validated_by_admin`: BOOLEAN
+* `created_at`: DATETIME
+
+### 6. Tabla: `HumanReview`
+
+Persistencia de las consultas Human-in-the-Loop disparadas por anomalías o evidencia insuficiente.
+
+* `id`: INTEGER PRIMARY KEY
+* `project_id`: TEXT (FK → Project)
+* `queue_id`: INTEGER (FK → ProcessingQueue, nullable)
+* `trigger`: TEXT (SUSPICIOUS_CATEGORY, INSUFFICIENT_EVIDENCE, INVALID_JSON, etc.)
+* `question`: TEXT
+* `answer`: TEXT
+* `reviewer_user_id`: TEXT (FK → User)
+* `asked_at`: DATETIME
+* `answered_at`: DATETIME
+
+---
+
+## 🛡️ Manejo de Errores y Resiliencia
+
+* **Errores transitorios (descarga desde CDN de Telegram, timeout de red, 5xx del backend de inferencia):** reintento con backoff exponencial; tras N intentos fallidos el item pasa a `status=FAILED`.
+* **JSON inválido o no conforme al schema:** se previene en origen usando el **guided decoding nativo de vLLM** (`guided_json` con JSON Schema), invocado a través del cliente OpenAI-compatible expuesto por vLLM. La integración en Python se hace con `langchain-openai` (`ChatOpenAI(base_url=...)`) pasando el schema vía `extra_body={"guided_json": <schema>}`. Como fallback, un segundo paso pide al modelo corregir su salida; si vuelve a fallar, el item entra a `HumanReview` con `trigger=INVALID_JSON`.
+* **Idempotencia:** `UNIQUE(project_id, file_id)` evita procesar dos veces el mismo update reentregado por Telegram.
+* **Imágenes descartadas:** los miembros no representantes del cluster se conservan **solo como referencia** (`file_id` + `is_representative=false`); el binario nunca se persiste en el servidor.
+* **Cierre por timeout:** si el admin no ejecuta `/finalizar_proyecto` tras un periodo configurable de inactividad, el proyecto pasa a `AUTO_CLOSED` y se genera el informe con lo disponible, marcando esta condición en `closure_reason`.
+
+## 🔐 Privacidad y Retención
+
+Los planos de locales (Cencosud, Metro) y las fotos de instalaciones de seguridad son información sensible del cliente. El MVP contempla:
+
+* **Cero persistencia de imágenes en el servidor**: las fotos viven solo en memoria durante el procesamiento y luego en la CDN de Telegram (referenciadas por `file_id`).
+* Cifrado en reposo del SQLite (que solo contiene metadatos, IDs y JSON estructurados, nunca binarios).
+* Acceso restringido al chat privado del admin para la carga del plano.
+
+## 🧰 Stack Técnico y Entorno de Desarrollo
+
+* **Python**: 3.13.0 gestionado con **pyenv** + **venv** para pruebas locales.
+* **Dependencias**: declaradas en `requirements.txt` (sin `pyproject.toml` para el MVP). Pinneado por versión exacta.
+* **Inferencia LLM**: vLLM (ya instalado en la instancia AMD) sirviendo Gemma 3 4B vía API OpenAI-compatible.
+* **Cliente LLM**: `langchain-openai` apuntando al endpoint vLLM, con `guided_json` para garantizar JSON conforme al schema.
+* **Telegram**: librería de bot asíncrona (ej. `python-telegram-bot` o `aiogram`).
+* **Procesamiento de imagen**: Pillow + OpenCV (varianza del Laplaciano) + un backend ligero de embeddings (CLIP pequeño, MobileNet o `imagehash`).
+* **Persistencia**: SQLite vía `sqlite3` o un thin wrapper (sin ORM pesado para el MVP).
+* **Configuración**: todas las claves, hosts, umbrales y parámetros se cargan desde `.env` (vía `python-dotenv`) y se exponen mediante un módulo `config.py` en la raíz del proyecto. **No hay valores por defecto** en firmas de funciones/clases; los parámetros se inyectan explícitamente desde `config.py`.
+
+## 📊 Métrica de Éxito
+
+El objetivo de "<15 minutos de revisión humana" debe ser medible. Se registra por proyecto:
+
+* `report_generation_duration` (desde `/finalizar_proyecto` hasta informe entregado).
+* Número de items que requirieron `HumanReview`.
+* Número de imágenes ingresadas vs. procesadas tras el clustering (ratio de compresión del lote).
 
 ---
 
