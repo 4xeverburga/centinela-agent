@@ -110,6 +110,9 @@ src/
     ├── providers/            # Outbound adapters (Telegram, vLLM, etc.)
     ├── controllers/          # Inbound adapters (bot handlers, HTTP, CLI)
     └── shared/               # Cross-cutting infra (db conn, http client)
+
+containers/                   # OCI container images (Containerfile.bot, etc.)
+scripts/                      # Shell helpers (start/stop/check vLLM on droplet)
 ```
 
 Rules:
@@ -125,5 +128,6 @@ Rules:
 - **Style**: PEP 8. Format with `black` and lint with `ruff` when available.
 - **No file-level docstrings**: do not add a docstring at the top of `.py` files. They harm readability for this project. Use docstrings only for non-trivial public functions/classes when they add real value.
 - **No default values** in function/method/class parameter signatures. All configuration is injected explicitly by the caller, ultimately sourced from `.env` via the `config.py` module at the repo root. This keeps the composition root as the single source of truth and avoids hidden defaults scattered across the codebase.
+- **Avoid `Optional` / `None` fields**: prefer explicit, non-nullable types. Only use `| None` when the domain genuinely requires the absence of a value (e.g., a field that is populated later in a lifecycle). Do not use `Optional` as a convenience to skip initialization.
 - `config.py` loads `.env` (via `python-dotenv`) and exposes a typed configuration object that is passed down through constructors.
 - Secrets and tokens must never be hardcoded; always read from `.env`.

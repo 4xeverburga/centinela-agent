@@ -69,7 +69,7 @@ La solución es un **Bot de Telegram** que actúa como colector de datos, proces
 
 3. **Cerebro Multimodal (Gemma 4 31B en AMD Cloud):**
 * 
-**Razón:** Se utiliza el modelo **Gemma 4 31B Dense** por su capacidad nativa para razonar sobre imágenes y texto de forma simultánea. Su gran tamaño permite identificar equipos y ubicarlos en el plano con un margen de error mínimo, algo que los modelos de 7B no logran en entornos técnicos complejos.
+**Razón:** Se utiliza el modelo **`google/gemma-4-31B-it`** (Image-Text-to-Text, 33B parámetros, instruction-tuned) por su capacidad nativa para razonar sobre imágenes y texto de forma simultánea. Su gran tamaño permite identificar equipos y ubicarlos en el plano con un margen de error mínimo, algo que los modelos de 7B no logran en entornos técnicos complejos.
 
 
 
@@ -84,7 +84,7 @@ La solución es un **Bot de Telegram** que actúa como colector de datos, proces
 
 ---
 
-## 🧠 Prompt Maestro para Gemma 4 (31B Dense)
+## 🧠 Prompt Maestro para Gemma 4 (`google/gemma-4-31B-it`)
 
 Este prompt se ejecuta durante el procesamiento por lotes (Batch) para cada imagen válida.
 
@@ -239,7 +239,7 @@ Los planos de locales (Cencosud, Metro) y las fotos de instalaciones de segurida
 
 * **Python**: 3.13.0 gestionado con **pyenv** + **venv** para pruebas locales.
 * **Dependencias**: declaradas en `requirements.txt` (sin `pyproject.toml` para el MVP). Pinneado por versión exacta.
-* **Inferencia LLM**: vLLM (ya instalado en la instancia AMD) sirviendo Gemma 3 4B vía API OpenAI-compatible.
+* **Inferencia LLM**: vLLM (ya instalado en la instancia AMD) sirviendo **`google/gemma-4-31B-it`** vía API OpenAI-compatible.
 * **Cliente LLM**: `langchain-openai` apuntando al endpoint vLLM, con `guided_json` para garantizar JSON conforme al schema.
 * **Telegram**: librería de bot asíncrona (ej. `python-telegram-bot` o `aiogram`).
 * **Procesamiento de imagen**: Pillow + OpenCV (varianza del Laplaciano) + un backend ligero de embeddings (CLIP pequeño, MobileNet o `imagehash`).
@@ -258,4 +258,4 @@ El objetivo de "<15 minutos de revisión humana" debe ser medible. Se registra p
 
 ## 🚀 Generación Final del Informe
 
-Cuando el usuario solicita el cierre del proyecto, **Gemma 4** lee únicamente el contenido de la tabla `ProcessedHistory` (solo texto procesado). El modelo analiza la narrativa de toda la semana para redactar un resumen ejecutivo y conclusiones técnicas, consolidando las observaciones individuales en un reporte final coherente.
+Cuando el usuario solicita el cierre del proyecto, **`google/gemma-4-31B-it`** lee únicamente el contenido de la tabla `ProcessedHistory` (solo texto procesado). El modelo analiza la narrativa de toda la semana para redactar un resumen ejecutivo y conclusiones técnicas, consolidando las observaciones individuales en un reporte final coherente.

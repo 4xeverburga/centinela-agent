@@ -12,18 +12,24 @@ Maintenance contractors for retail security systems (CCTV, fire alarms) in Peru 
 
 | Component | Detail |
 |---|---|
-| LLM inference | vLLM serving Gemma (multimodal) on a DigitalOcean **AMD Instinct MI300X (192 GB)** GPU droplet. IP and SSH key managed via `.env`. |
-| Bot transport | Telegram Bot API (long polling for the MVP). |
+| LLM inference | **vLLM nightly (v0.20.2rc1, ROCm)** serving `google/gemma-4-31B-it` on a DigitalOcean **AMD Instinct MI300X (192 GB)** GPU droplet (`134.199.206.109`). OpenAI-compatible API on port 8000. |
+| Bot transport | Telegram Bot API (long polling). Bot: `@C3nt1nel_bot`. |
 | Persistence | SQLite local file (metadata only — **no image binaries are stored**; Telegram CDN is the source of truth via `file_id`). |
 | Runtime | Python 3.13.0 (`pyenv` + `venv`), dependencies pinned in `requirements.txt`. |
+| Container images | `vllm/vllm-openai-rocm:nightly` (GPU droplet), `Containerfile.bot` (bot — see `containers/`). |
 
 > Detailed product/engineering spec: [docs/artifacts/in/product_def.md](docs/artifacts/in/product_def.md)
 
 ## Steps to Create the Infrastructure and Resources
 
 1. **Provision the GPU droplet** on DigitalOcean (AMD MI300X). Save its public IP and a private SSH key.
-2. **Install vLLM** on the droplet and serve a Gemma multimodal checkpoint with the OpenAI-compatible API enabled (supports `guided_json` for structured output).
-3. **Create the Telegram bot** via `@BotFather`, capture the HTTP API token, and register the desired display name and username.
+2. **Start vLLM** on the droplet:
+   ```bash
+   # From your local machine (SSH key + IP configured in .env)
+   bash scripts/start_vllm.sh
+   bash scripts/check_vllm.sh   # wait until /v1/models returns the model
+   ```
+3. **Create the Telegram bot** via `@BotFather`, capture the HTTP API token.
 4. **Clone the repo locally** and configure the environment:
    ```bash
    pyenv install 3.13.0
@@ -32,7 +38,16 @@ Maintenance contractors for retail security systems (CCTV, fire alarms) in Peru 
    pip install -r requirements.txt
    cp env .env   # then fill real values; never commit .env
    ```
-5. **Run the bot** (entrypoint TBD during implementation phase).
+5. **Run the bot**:
+   ```bash
+   source .venv/bin/activate
+   PYTHONPATH=src:. python src/__main__.py
+   ```
+6. **Or run via container**:
+   ```bash
+   podman build -f containers/Containerfile.bot -t centinela-bot .
+   podman run --env-file .env centinela-bot
+   ```
 
 ## Architecture (Summary)
 
@@ -51,9 +66,9 @@ Full conventions and rules: [AGENTS.md](AGENTS.md).
 - **No image persistence**: by design, lost messages from Telegram cannot be reprocessed once their `file_id` expires on Telegram's CDN.
 - **SQLite single-file storage**: fine for the MVP, will not scale to multiple concurrent locales without migration to a server DB.
 - **Long polling only**: no webhook deployment yet; not production-grade for high message rates.
-- **Gemma model size and serving config** still subject to benchmarking on the MI300X; latency targets not yet validated.
 - **Auth & multi-tenant**: a single bot serves all locales identified by `chat_id`; no per-tenant isolation beyond that.
-- **Hugging Face org / Spaces** integration not yet decided as a deployment target.
+- **vLLM nightly dependency**: Gemma 4 requires vLLM nightly (>= v0.20.x) because the stable v0.17.1 does not recognise the `gemma4` architecture. Alternatives: SGLang, HF Inference Providers.
+- **Bot runs locally**: not yet deployed to cloud — `containers/Containerfile.bot` is provided for future containerised deployment.
 
 ## Repository Structure
 
@@ -63,6 +78,9 @@ Full conventions and rules: [AGENTS.md](AGENTS.md).
 ├── README.md                          # This file
 ├── requirements.txt                   # Pinned Python dependencies (TBD)
 ├── config.py                          # Loads .env, exposes typed config (TBD)
+├── containers/
+│   └── Containerfile.bot               # OCI image for the Telegram bot
+├── scripts/                           # start/stop/check vLLM helpers
 ├── src/
 │   ├── app/                           # Domain, ports, services
 │   └── ext/                           # Adapters: Telegram, vLLM, SQLite, controllers
