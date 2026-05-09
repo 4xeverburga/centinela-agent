@@ -151,7 +151,12 @@ class HumanReviewRequest:
     reviewer_user_id: str
     answered_at: str
     id: int = 0
-    id: int = 0
+
+
+@dataclass(frozen=True)
+class AdminWhitelistEntry:
+    telegram_user_id: str
+    added_at: datetime
 
 
 @dataclass(frozen=True)

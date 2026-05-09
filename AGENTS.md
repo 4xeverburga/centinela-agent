@@ -111,7 +111,7 @@ src/
     ├── controllers/          # Inbound adapters (bot handlers, HTTP, CLI)
     └── shared/               # Cross-cutting infra (db conn, http client)
 
-containers/                   # OCI container images (Containerfile.bot, etc.)
+containers/                   # Container images deployed to the AMD GPU droplet (Containerfile.bot, etc.)
 scripts/                      # Shell helpers (start/stop/check vLLM on droplet)
 ```
 

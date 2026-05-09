@@ -79,6 +79,11 @@ CREATE TABLE IF NOT EXISTS human_reviews (
     answered_at TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
+
+CREATE TABLE IF NOT EXISTS admin_whitelist (
+    telegram_user_id TEXT PRIMARY KEY,
+    added_at TEXT NOT NULL
+);
 """
 
 

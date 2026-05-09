@@ -217,6 +217,19 @@ Persistencia de las consultas Human-in-the-Loop disparadas por anomalías o evid
 * `asked_at`: DATETIME
 * `answered_at`: DATETIME
 
+### 7. Tabla: `AdminWhitelist`
+
+Lista de usuarios autorizados como administradores del bot. Solo los usuarios en esta tabla pueden: ejecutar `/iniciar` (exclusivamente en chats grupales), interactuar con el bot en chats privados (1-a-1), y ejecutar `/finalizar`. El registro inicial se realiza mediante la variable de entorno `ADMIN_TELEGRAM_USER_IDS` (lista separada por comas). Se persiste en SQLite para permitir futuros comandos de gestión de admins sin reiniciar el bot.
+
+* `telegram_user_id`: TEXT PRIMARY KEY
+* `added_at`: DATETIME
+
+**Reglas de acceso:**
+
+* `/iniciar` solo se permite en chats grupales y solo por un admin registrado.
+* Mensajes en chat privado (1-a-1) son ignorados si el remitente no es admin.
+* Cuando un admin ejecuta `/iniciar <nombre>` en un grupo, el bot le envía un mensaje privado solicitando información complementaria del proyecto (plano del local, instrucciones especiales).
+
 ---
 
 ## 🛡️ Manejo de Errores y Resiliencia

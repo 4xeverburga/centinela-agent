@@ -3,8 +3,8 @@ import json
 import logging
 from datetime import datetime
 
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
+import httpx
+from pydantic import ValidationError
 
 from app.domain.entities import (
     ChatMessage,
@@ -27,12 +27,8 @@ logger = logging.getLogger(__name__)
 class VllmLLMInspector(LLMInspector):
     def __init__(self, base_url: str, model: str, api_key: str):
         self._model = model
-        self._llm = ChatOpenAI(
-            base_url=base_url,
-            model=model,
-            api_key=api_key,
-            temperature=0.1,
-        )
+        self._base_url = base_url.rstrip("/")
+        self._api_key = api_key
         self._guided_json = InspectionPayload.model_json_schema()
 
     async def inspect(
@@ -72,19 +68,31 @@ class VllmLLMInspector(LLMInspector):
             })
 
         messages = [
-            SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=content),
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content},
         ]
 
-        response = await self._llm.ainvoke(
-            messages,
-            extra_body={"guided_json": self._guided_json},
-        )
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": 0.1,
+            "guided_json": self._guided_json,
+        }
 
-        raw = response.content
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{self._base_url}/chat/completions",
+                json=payload,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+            )
+            resp.raise_for_status()
+
+        raw = resp.json()["choices"][0]["message"]["content"]
+
         try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
+            parsed_dict = json.loads(raw)
+            payload_obj = InspectionPayload.model_validate(parsed_dict)
+        except (json.JSONDecodeError, ValidationError) as exc:
             logger.error("Failed to parse LLM response: %s", raw[:500])
             return InspectionRecord(
                 project_id=project_id,
@@ -96,28 +104,28 @@ class VllmLLMInspector(LLMInspector):
                 location_on_map="",
                 ocr_data="",
                 tech_observation="",
-                ai_system_observation=f"JSON parse error: {raw[:200]}",
+                ai_system_observation=f"Schema error: {exc}",
                 is_suspicious=True,
                 validated_by_admin=False,
                 created_at=datetime.now(),
-                anomaly_reason="Invalid JSON from LLM",
+                anomaly_reason="Invalid or non-conforming JSON from LLM",
             )
 
         return InspectionRecord(
             project_id=project_id,
             queue_id=queue_id,
             image_file_id=image_file_id,
-            item_id=parsed.get("item_id", ""),
-            category=parsed.get("category", "UNKNOWN"),
-            inspection_status=InspectionStatus(parsed.get("status", "DURANTE")),
-            location_on_map=parsed.get("location_ref", ""),
-            ocr_data=parsed.get("ocr", ""),
-            tech_observation=parsed.get("observation", ""),
-            ai_system_observation=parsed.get("system_observation", ""),
-            is_suspicious=parsed.get("is_suspicious", False),
+            item_id="",
+            category=payload_obj.category,
+            inspection_status=InspectionStatus(payload_obj.status),
+            location_on_map=payload_obj.location_ref,
+            ocr_data=payload_obj.ocr,
+            tech_observation=payload_obj.observation,
+            ai_system_observation=payload_obj.system_observation,
+            is_suspicious=payload_obj.is_suspicious,
             validated_by_admin=False,
             created_at=datetime.now(),
-            anomaly_reason=parsed.get("anomaly_reason", ""),
+            anomaly_reason=payload_obj.anomaly_reason,
         )
 
     @staticmethod

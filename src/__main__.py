@@ -36,9 +36,15 @@ async def run() -> None:
     inspection_repo = SqliteInspectionRepository(conn)
     review_repo = SqliteHumanReviewRepository(conn)
 
+    from ext.repositories.sqlite_admin_whitelist_repository import SqliteAdminWhitelistRepository
+    admin_repo = SqliteAdminWhitelistRepository(conn)
+
     from ext.providers.system_clock import SystemClock, UuidIdGenerator
     clock = SystemClock()
     id_gen = UuidIdGenerator()
+
+    admin_ids = [uid.strip() for uid in cfg.admin_telegram_user_ids.split(",") if uid.strip()]
+    await admin_repo.seed(admin_ids, clock.now().isoformat())
 
     from ext.providers.pillow_image_processor import PillowImageProcessor
     image_processor = PillowImageProcessor(
@@ -119,7 +125,8 @@ async def run() -> None:
     from ext.controllers.telegram_bot import TelegramBotController
     from telegram.ext import ApplicationBuilder
     controller = TelegramBotController(
-        start_svc, finish_svc, ingest_photo_svc, ingest_msg_svc, register_fp_svc, hitl_svc
+        start_svc, finish_svc, ingest_photo_svc, ingest_msg_svc, register_fp_svc, hitl_svc,
+        admin_repo, telegram_gw,
     )
 
     app = ApplicationBuilder().token(cfg.bot_http_api_token).build()
