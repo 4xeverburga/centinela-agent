@@ -12,6 +12,6 @@ class LLMInspector(ABC):
         chat_window: list[ChatMessage],
         recent_inspections_json: list[dict],
         project_id: str,
-        queue_id: int,
+        system_version: str,
         image_file_id: str,
     ) -> InspectionRecord: ...

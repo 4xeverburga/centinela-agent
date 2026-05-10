@@ -20,20 +20,20 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS queue (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS inspections_queue (
     file_id TEXT NOT NULL,
+    system_version TEXT NOT NULL,
+    project_id TEXT NOT NULL,
     chat_id TEXT NOT NULL,
     cluster_id TEXT NOT NULL DEFAULT '',
     is_representative INTEGER NOT NULL DEFAULT 1,
-    sharpness_score REAL NOT NULL DEFAULT 0.0,
     status TEXT NOT NULL DEFAULT 'PENDING',
     attempts INTEGER NOT NULL DEFAULT 0,
     received_at TEXT NOT NULL,
     last_error TEXT NOT NULL DEFAULT '',
     worker_id TEXT NOT NULL DEFAULT '',
     processed_at TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (file_id, system_version),
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
 
@@ -46,14 +46,16 @@ CREATE TABLE IF NOT EXISTS chat_history (
     text TEXT NOT NULL,
     file_id TEXT NOT NULL DEFAULT '',
     timestamp TEXT NOT NULL,
+    is_included_in_history INTEGER NOT NULL DEFAULT 1,
+    rejected_reason TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
 
 CREATE TABLE IF NOT EXISTS inspections (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id TEXT NOT NULL,
-    queue_id INTEGER NOT NULL,
     image_file_id TEXT NOT NULL,
+    system_version TEXT NOT NULL DEFAULT '',
     item_id TEXT NOT NULL,
     category TEXT NOT NULL,
     inspection_status TEXT NOT NULL,
@@ -62,7 +64,6 @@ CREATE TABLE IF NOT EXISTS inspections (
     tech_observation TEXT NOT NULL DEFAULT '',
     ai_system_observation TEXT NOT NULL DEFAULT '',
     is_suspicious INTEGER NOT NULL DEFAULT 0,
-    validated_by_admin INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
@@ -73,7 +74,7 @@ CREATE TABLE IF NOT EXISTS human_reviews (
     trigger TEXT NOT NULL,
     question TEXT NOT NULL,
     asked_at TEXT NOT NULL,
-    queue_id INTEGER NOT NULL DEFAULT 0,
+    image_file_id TEXT NOT NULL DEFAULT '',
     answer TEXT NOT NULL DEFAULT '',
     reviewer_user_id TEXT NOT NULL DEFAULT '',
     answered_at TEXT NOT NULL DEFAULT '',

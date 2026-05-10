@@ -88,4 +88,8 @@ ALERT_CAPTION = (
     "Ubicación: {location}"
 )
 
-HITL_REVIEW = "Revisión {review_id}: {answer}"
+HITL_QUESTION = "¿Es correcta esta alerta?"
+HITL_CONFIRM_BUTTON = "✅ Confirmar alerta"
+HITL_REJECT_BUTTON = "❌ Descartar alerta"
+HITL_CONFIRMED = "⚠️ Alerta #{review_id} *confirmada* por {reviewer}"
+HITL_REJECTED = "✅ Alerta #{review_id} *descartada* por {reviewer}"

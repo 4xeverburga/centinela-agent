@@ -57,3 +57,6 @@ class Config(BaseSettings):
 
     # Locale ("es" or "en")
     bot_locale: str = Field(alias="BOT_LOCALE")
+
+    # Versioning
+    system_version: str = Field(alias="SYSTEM_VERSION")

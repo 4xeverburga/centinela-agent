@@ -13,9 +13,11 @@ from telegram.ext import (
     filters,
 )
 
+from app.domain.entities import IngestResult, ReviewTrigger
 from app.ports.admin_whitelist_repository import AdminWhitelistRepository
 from app.ports.assistant_repository import AssistantRepository
 from app.ports.inspection_repository import InspectionRepository
+from app.ports.human_review_repository import HumanReviewRepository
 from app.ports.project_repository import ProjectRepository
 from app.ports.telegram_gateway import TelegramGateway
 from app.services.start_project import StartProjectService
@@ -41,6 +43,7 @@ class TelegramBotController:
         assistant_repo: AssistantRepository,
         project_repo: ProjectRepository,
         inspection_repo: InspectionRepository,
+        review_repo: HumanReviewRepository,
         telegram_gw: TelegramGateway,
         locale: ModuleType,
     ):
@@ -54,6 +57,7 @@ class TelegramBotController:
         self._assistant_repo = assistant_repo
         self._project_repo = project_repo
         self._inspection_repo = inspection_repo
+        self._review_repo = review_repo
         self._telegram = telegram_gw
         self._locale = locale
 
@@ -196,7 +200,10 @@ class TelegramBotController:
         user_id = str(update.effective_user.id) if update.effective_user else ""
         display = update.effective_user.full_name if update.effective_user else ""
         file_id = update.effective_message.photo[-1].file_id
-        await self._ingest_photo.execute(chat_id, file_id, user_id, display)
+        caption = update.effective_message.caption or ""
+        result = await self._ingest_photo.execute(chat_id, file_id, user_id, display, caption)
+        if result == IngestResult.REJECTED_BLURRY:
+            await self._telegram.send_message(chat_id, self._locale.BLURRY_IMAGE)
 
     async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_message is None or update.effective_user is None:
@@ -228,16 +235,19 @@ class TelegramBotController:
         action = parts[1]
         review_id = int(parts[2])
         reviewer_id = str(update.effective_user.id) if update.effective_user else ""
+        reviewer_name = update.effective_user.full_name if update.effective_user else reviewer_id
 
         answer = "confirmed" if action == "confirm" else "rejected"
         await self._hitl.execute(review_id, answer, reviewer_id)
         try:
-            await query.edit_message_text(
-                self._locale.HITL_REVIEW.format(review_id=review_id, answer=answer)
-            )
+            if answer == "confirmed":
+                msg = self._locale.HITL_CONFIRMED.format(review_id=review_id, reviewer=reviewer_name)
+            else:
+                msg = self._locale.HITL_REJECTED.format(review_id=review_id, reviewer=reviewer_name)
+            await query.edit_message_text(msg, parse_mode="Markdown")
         except BadRequest as e:
             if "not modified" in str(e).lower():
-                pass  # duplicate button press, already updated
+                pass
             else:
                 raise
 
@@ -266,31 +276,35 @@ class TelegramBotController:
                 await update.effective_message.reply_text(self._locale.ALERTS_UNAUTHORIZED)
                 return
 
-        alerts = await self._inspection_repo.get_pending_suspicious(project.project_id, 5)
-        if not alerts:
+        alerts = await self._review_repo.get_pending_for_project(project.project_id)
+        suspicious = [r for r in alerts if r.trigger == ReviewTrigger.SUSPICIOUS_CATEGORY][:5]
+        if not suspicious:
             await update.effective_message.reply_text(self._locale.ALERTS_EMPTY)
             return
 
-        total = len(alerts)
+        total = len(suspicious)
         await update.effective_message.reply_text(
             self._locale.ALERTS_HEADER.format(count=total), parse_mode="Markdown"
         )
 
-        for idx, alert in enumerate(alerts, 1):
+        for idx, review in enumerate(suspicious, 1):
+            inspection = await self._inspection_repo.get_by_image_file_id(review.image_file_id)
+            if inspection is None:
+                continue
             caption = self._locale.ALERT_CAPTION.format(
                 idx=idx,
-                category=alert.category,
-                reason=alert.ai_system_observation or "-",
-                location=alert.location_on_map or "-",
+                category=inspection.category,
+                reason=inspection.ai_system_observation or "-",
+                location=inspection.location_on_map or "-",
             )
             await self._telegram.send_photo(
-                chat_id, alert.image_file_id, caption
+                chat_id, inspection.image_file_id, caption
             )
             await self._telegram.send_inline_keyboard(
                 chat_id,
-                self._locale.HITL_REVIEW.format(review_id=alert.id, answer="?"),
+                self._locale.HITL_QUESTION,
                 [[
-                    {"text": "\u2705 Confirmar", "callback_data": f"hitl_confirm_{alert.id}"},
-                    {"text": "\u274c Rechazar", "callback_data": f"hitl_reject_{alert.id}"},
+                    {"text": self._locale.HITL_CONFIRM_BUTTON, "callback_data": f"hitl_confirm_{review.id}"},
+                    {"text": self._locale.HITL_REJECT_BUTTON, "callback_data": f"hitl_reject_{review.id}"},
                 ]],
             )

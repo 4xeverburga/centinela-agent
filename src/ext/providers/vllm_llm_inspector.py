@@ -76,7 +76,7 @@ class VllmLLMInspector(LLMInspector):
         chat_window: list[ChatMessage],
         recent_inspections_json: list[dict],
         project_id: str,
-        queue_id: int,
+        system_version: str,
         image_file_id: str,
     ) -> InspectionRecord:
         from app.domain.entities import InspectionRecord as IR
@@ -135,8 +135,8 @@ class VllmLLMInspector(LLMInspector):
             logger.error("Failed to parse LLM response: %s", raw[:500])
             return InspectionRecord(
                 project_id=project_id,
-                queue_id=queue_id,
                 image_file_id=image_file_id,
+                system_version=system_version,
                 item_id="PARSE_ERROR",
                 category="UNKNOWN",
                 inspection_status=InspectionStatus.DURANTE,
@@ -145,14 +145,13 @@ class VllmLLMInspector(LLMInspector):
                 tech_observation="",
                 ai_system_observation=f"Schema error: {exc}",
                 is_suspicious=True,
-                validated_by_admin=False,
                 created_at=datetime.now(),
             )
 
         return InspectionRecord(
             project_id=project_id,
-            queue_id=queue_id,
             image_file_id=image_file_id,
+            system_version=system_version,
             item_id="",
             category=payload_obj.category,
             inspection_status=InspectionStatus(payload_obj.status),
@@ -161,7 +160,6 @@ class VllmLLMInspector(LLMInspector):
             tech_observation=payload_obj.observation,
             ai_system_observation=payload_obj.system_observation,
             is_suspicious=payload_obj.is_suspicious,
-            validated_by_admin=False,
             created_at=datetime.now(),
         )
 
@@ -169,8 +167,8 @@ class VllmLLMInspector(LLMInspector):
     def _dict_to_stub(d: dict) -> InspectionRecord:
         return InspectionRecord(
             project_id="",
-            queue_id=0,
             image_file_id="",
+            system_version="",
             item_id="",
             category=d.get("category", ""),
             inspection_status=InspectionStatus(d.get("status", "DURANTE")),
@@ -179,6 +177,5 @@ class VllmLLMInspector(LLMInspector):
             tech_observation=d.get("tech_observation", ""),
             ai_system_observation=d.get("system_observation", ""),
             is_suspicious=False,
-            validated_by_admin=False,
             created_at=datetime.now(),
         )

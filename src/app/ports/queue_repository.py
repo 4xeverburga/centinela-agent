@@ -5,7 +5,7 @@ from app.domain.entities import QueueItem, QueueStatus
 
 class QueueRepository(ABC):
     @abstractmethod
-    async def save(self, item: QueueItem) -> int: ...
+    async def save(self, item: QueueItem) -> None: ...
 
     @abstractmethod
     async def get_oldest_pending(self, project_id: str) -> QueueItem | None: ...
@@ -18,7 +18,8 @@ class QueueRepository(ABC):
     @abstractmethod
     async def update_status(
         self,
-        item_id: int,
+        file_id: str,
+        system_version: str,
         status: QueueStatus,
         attempts: int,
         last_error: str,
@@ -26,12 +27,7 @@ class QueueRepository(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def mark_completed(self, item_id: int, processed_at: str) -> None: ...
+    async def mark_completed(self, file_id: str, system_version: str, processed_at: str) -> None: ...
 
     @abstractmethod
-    async def mark_cluster(
-        self, item_id: int, cluster_id: str, is_representative: bool, sharpness_score: float
-    ) -> None: ...
-
-    @abstractmethod
-    async def get_by_id(self, item_id: int) -> QueueItem | None: ...
+    async def get_by_key(self, file_id: str, system_version: str) -> QueueItem | None: ...

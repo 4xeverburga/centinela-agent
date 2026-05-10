@@ -13,8 +13,9 @@ class SqliteHistoryRepository(HistoryRepository):
     async def save(self, project_id: str, message: ChatMessage) -> None:
         await self._conn.execute(
             """INSERT INTO chat_history
-               (project_id, telegram_user_id, display_name, role, text, file_id, timestamp)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               (project_id, telegram_user_id, display_name, role, text, file_id, timestamp,
+                is_included_in_history, rejected_reason)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 project_id,
                 message.telegram_user_id,
@@ -23,6 +24,8 @@ class SqliteHistoryRepository(HistoryRepository):
                 message.text,
                 message.file_id,
                 message.timestamp.isoformat(),
+                int(message.is_included_in_history),
+                message.rejected_reason,
             ),
         )
         await self._conn.commit()
@@ -35,6 +38,7 @@ class SqliteHistoryRepository(HistoryRepository):
             cursor = await self._conn.execute(
                 """SELECT * FROM chat_history
                    WHERE project_id = ? AND telegram_user_id = ? AND timestamp >= ?
+                     AND is_included_in_history = 1
                    ORDER BY timestamp DESC LIMIT ?""",
                 (project_id, telegram_user_id, cutoff, max_messages),
             )
@@ -42,6 +46,7 @@ class SqliteHistoryRepository(HistoryRepository):
             cursor = await self._conn.execute(
                 """SELECT * FROM chat_history
                    WHERE project_id = ? AND timestamp >= ?
+                     AND is_included_in_history = 1
                    ORDER BY timestamp DESC LIMIT ?""",
                 (project_id, cutoff, max_messages),
             )
@@ -65,4 +70,6 @@ class SqliteHistoryRepository(HistoryRepository):
             text=row["text"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
             file_id=row["file_id"],
+            is_included_in_history=bool(row["is_included_in_history"]),
+            rejected_reason=row["rejected_reason"],
         )

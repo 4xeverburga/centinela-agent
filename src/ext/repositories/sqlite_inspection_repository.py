@@ -13,15 +13,14 @@ class SqliteInspectionRepository(InspectionRepository):
     async def save(self, record: InspectionRecord) -> int:
         cursor = await self._conn.execute(
             """INSERT INTO inspections
-               (project_id, queue_id, image_file_id, item_id, category,
+               (project_id, image_file_id, system_version, item_id, category,
                 inspection_status, location_on_map, ocr_data, tech_observation,
-                ai_system_observation, is_suspicious, validated_by_admin,
-                created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                ai_system_observation, is_suspicious, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 record.project_id,
-                record.queue_id,
                 record.image_file_id,
+                record.system_version,
                 record.item_id,
                 record.category,
                 record.inspection_status.value,
@@ -30,7 +29,6 @@ class SqliteInspectionRepository(InspectionRepository):
                 record.tech_observation,
                 record.ai_system_observation,
                 int(record.is_suspicious),
-                int(record.validated_by_admin),
                 record.created_at.isoformat(),
             ),
         )
@@ -56,27 +54,17 @@ class SqliteInspectionRepository(InspectionRepository):
         rows = await cursor.fetchall()
         return [self._row_to_record(r) for r in rows]
 
-    async def update_validated_by_queue_id(self, queue_id: int, validated_by_admin: bool) -> None:
-        await self._conn.execute(
-            "UPDATE inspections SET validated_by_admin = ? WHERE queue_id = ?",
-            (int(validated_by_admin), queue_id),
-        )
-        await self._conn.commit()
-
-    async def update_validated(self, record_id: int, validated_by_admin: bool) -> None:
-        await self._conn.execute(
-            "UPDATE inspections SET validated_by_admin = ? WHERE id = ?",
-            (int(validated_by_admin), record_id),
-        )
-        await self._conn.commit()
-
     async def get_pending_suspicious(
         self, project_id: str, limit: int
     ) -> list[InspectionRecord]:
         cursor = await self._conn.execute(
-            """SELECT * FROM inspections
-               WHERE project_id = ? AND is_suspicious = 1 AND validated_by_admin = 0
-               ORDER BY created_at DESC LIMIT ?""",
+            """SELECT i.* FROM inspections i
+               WHERE i.project_id = ? AND i.is_suspicious = 1
+                 AND NOT EXISTS (
+                     SELECT 1 FROM human_reviews hr
+                     WHERE hr.image_file_id = i.image_file_id AND hr.answer != ''
+                 )
+               ORDER BY i.created_at DESC LIMIT ?""",
             (project_id, limit),
         )
         rows = await cursor.fetchall()
@@ -95,8 +83,8 @@ class SqliteInspectionRepository(InspectionRepository):
         return InspectionRecord(
             id=row["id"],
             project_id=row["project_id"],
-            queue_id=row["queue_id"],
             image_file_id=row["image_file_id"],
+            system_version=row["system_version"],
             item_id=row["item_id"],
             category=row["category"],
             inspection_status=InspectionStatus(row["inspection_status"]),
@@ -105,6 +93,5 @@ class SqliteInspectionRepository(InspectionRepository):
             tech_observation=row["tech_observation"],
             ai_system_observation=row["ai_system_observation"],
             is_suspicious=bool(row["is_suspicious"]),
-            validated_by_admin=bool(row["validated_by_admin"]),
             created_at=datetime.fromisoformat(row["created_at"]),
         )

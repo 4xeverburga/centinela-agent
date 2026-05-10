@@ -24,7 +24,16 @@ class FakeInspectionRepository(InspectionRepository):
     async def get_all_for_project(self, project_id: str) -> list[InspectionRecord]:
         return [r for r in self._store.values() if r.project_id == project_id]
 
-    async def update_validated(self, record_id: int, validated_by_admin: bool) -> None:
-        from dataclasses import replace
-        r = self._store[record_id]
-        self._store[record_id] = replace(r, validated_by_admin=validated_by_admin)
+    async def get_pending_suspicious(
+        self, project_id: str, limit: int
+    ) -> list[InspectionRecord]:
+        return [
+            r for r in self._store.values()
+            if r.project_id == project_id and r.is_suspicious
+        ][:limit]
+
+    async def get_by_image_file_id(self, file_id: str) -> InspectionRecord | None:
+        for r in self._store.values():
+            if r.image_file_id == file_id:
+                return r
+        return None

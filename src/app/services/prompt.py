@@ -25,7 +25,7 @@ def build_context_summary(
 
 
 def build_chat_window_text(messages: list[ChatMessage], locale: ModuleType) -> str:
-    text_msgs = [m for m in messages if not m.file_id]
+    text_msgs = [m for m in messages if m.text]
     if not text_msgs:
         return locale.NO_CHAT_MESSAGES
 

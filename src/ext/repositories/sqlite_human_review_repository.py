@@ -13,7 +13,7 @@ class SqliteHumanReviewRepository(HumanReviewRepository):
     async def save(self, review: HumanReviewRequest) -> int:
         cursor = await self._conn.execute(
             """INSERT INTO human_reviews
-               (project_id, trigger, question, asked_at, queue_id,
+               (project_id, trigger, question, asked_at, image_file_id,
                 answer, reviewer_user_id, answered_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
@@ -21,7 +21,7 @@ class SqliteHumanReviewRepository(HumanReviewRepository):
                 review.trigger.value,
                 review.question,
                 review.asked_at.isoformat(),
-                review.queue_id,
+                review.image_file_id,
                 review.answer,
                 review.reviewer_user_id,
                 review.answered_at,
@@ -59,13 +59,11 @@ class SqliteHumanReviewRepository(HumanReviewRepository):
     @staticmethod
     def _row_to_review(row: aiosqlite.Row) -> HumanReviewRequest:
         return HumanReviewRequest(
-            id=row["id"],
-            project_id=row["project_id"],
+            id=row["id"], project_id=row["project_id"],
             trigger=ReviewTrigger(row["trigger"]),
             question=row["question"],
             asked_at=datetime.fromisoformat(row["asked_at"]),
-            queue_id=row["queue_id"],
-            answer=row["answer"],
+            image_file_id=row["image_file_id"], answer=row["answer"],
             reviewer_user_id=row["reviewer_user_id"],
             answered_at=row["answered_at"],
         )

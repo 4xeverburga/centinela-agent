@@ -4,15 +4,11 @@ from app.ports.queue_repository import QueueRepository
 
 class FakeQueueRepository(QueueRepository):
     def __init__(self):
-        self._store: dict[int, QueueItem] = {}
-        self._counter = 0
+        self._store: dict[str, QueueItem] = {}
 
-    async def save(self, item: QueueItem) -> int:
-        self._counter += 1
-        from dataclasses import replace
-        stored = replace(item, id=self._counter)
-        self._store[self._counter] = stored
-        return self._counter
+    async def save(self, item: QueueItem) -> None:
+        key = f"{item.file_id}:{item.system_version}"
+        self._store[key] = item
 
     async def get_oldest_pending(self, project_id: str) -> QueueItem | None:
         pending = [
@@ -32,30 +28,23 @@ class FakeQueueRepository(QueueRepository):
         ]
 
     async def update_status(
-        self, item_id: int, status: QueueStatus, attempts: int, last_error: str, worker_id: str
+        self, file_id: str, system_version: str, status: QueueStatus,
+        attempts: int, last_error: str, worker_id: str,
     ) -> None:
         from dataclasses import replace
-        item = self._store[item_id]
-        self._store[item_id] = replace(
+        key = f"{file_id}:{system_version}"
+        item = self._store[key]
+        self._store[key] = replace(
             item, status=status, attempts=attempts, last_error=last_error, worker_id=worker_id
         )
 
-    async def mark_completed(self, item_id: int, processed_at: str) -> None:
+    async def mark_completed(self, file_id: str, system_version: str, processed_at: str) -> None:
         from dataclasses import replace
-        item = self._store[item_id]
-        self._store[item_id] = replace(
+        key = f"{file_id}:{system_version}"
+        item = self._store[key]
+        self._store[key] = replace(
             item, status=QueueStatus.COMPLETED, processed_at=processed_at
         )
 
-    async def mark_cluster(
-        self, item_id: int, cluster_id: str, is_representative: bool, sharpness_score: float
-    ) -> None:
-        from dataclasses import replace
-        item = self._store[item_id]
-        self._store[item_id] = replace(
-            item, cluster_id=cluster_id, is_representative=is_representative,
-            sharpness_score=sharpness_score,
-        )
-
-    async def get_by_id(self, item_id: int) -> QueueItem | None:
-        return self._store.get(item_id)
+    async def get_by_key(self, file_id: str, system_version: str) -> QueueItem | None:
+        return self._store.get(f"{file_id}:{system_version}")

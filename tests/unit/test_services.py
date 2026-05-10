@@ -48,11 +48,19 @@ async def test_ingest_photo_queues_item():
     from app.services.ingest_photo import IngestPhotoService
     from tests.fakes.fake_project_repository import FakeProjectRepository
     from tests.fakes.fake_queue_repository import FakeQueueRepository
+    from tests.fakes.fake_history_repository import FakeHistoryRepository
+    from tests.fakes.fake_user_repository import FakeUserRepository
+    from tests.fakes.fake_telegram_gateway import FakeTelegramGateway
+    from tests.fakes.fake_image_processor import FakeImageProcessor
     from tests.fakes.fake_clock import FakeClock
-    from app.domain.entities import Project, ProjectStatus
+    from app.domain.entities import IngestResult, Project, ProjectStatus
 
     project_repo = FakeProjectRepository()
     queue_repo = FakeQueueRepository()
+    history_repo = FakeHistoryRepository()
+    user_repo = FakeUserRepository()
+    telegram = FakeTelegramGateway()
+    image_processor = FakeImageProcessor()
     clock = FakeClock(datetime(2026, 7, 15, 10, 0, 0))
 
     project = Project(
@@ -68,11 +76,14 @@ async def test_ingest_photo_queues_item():
     )
     await project_repo.save(project)
 
-    svc = IngestPhotoService(project_repo, queue_repo, clock)
-    item_id = await svc.execute("123", "file-abc")
+    svc = IngestPhotoService(
+        project_repo, queue_repo, history_repo, user_repo,
+        telegram, image_processor, clock, 50.0, "may2026:0.1",
+    )
+    result = await svc.execute("123", "file-abc", "u2", "Tech Juan", "camera maintenance")
 
-    assert item_id == 1
-    item = await queue_repo.get_by_id(item_id)
+    assert result == IngestResult.QUEUED
+    item = await queue_repo.get_by_key("file-abc", "may2026:0.1")
     assert item is not None
     assert item.file_id == "file-abc"
     assert item.project_id == "p1"

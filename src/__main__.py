@@ -105,10 +105,14 @@ async def run() -> None:
     finish_svc = FinishProjectService(
         project_repo, inspection_repo, history_repo, review_repo, report_gen, telegram_gw, clock
     )
-    ingest_photo_svc = IngestPhotoService(project_repo, queue_repo, history_repo, user_repo, clock)
+    ingest_photo_svc = IngestPhotoService(
+        project_repo, queue_repo, history_repo, user_repo,
+        telegram_gw, image_processor, clock,
+        cfg.image_sharpness_min, cfg.system_version,
+    )
     ingest_msg_svc = IngestMessageService(project_repo, history_repo, user_repo, clock)
     register_fp_svc = RegisterFloorplanService(project_repo, telegram_gw)
-    hitl_svc = HandleHITLResponseService(review_repo, inspection_repo, clock)
+    hitl_svc = HandleHITLResponseService(review_repo, clock)
 
     process_svc = ProcessQueueItemService(
         queue_repo=queue_repo,
@@ -118,13 +122,10 @@ async def run() -> None:
         review_repo=review_repo,
         telegram=telegram_gw,
         image_processor=image_processor,
-        image_embedder=image_embedder,
-        clustering_engine=clustering_engine,
         llm_inspector=llm_inspector,
         clock=clock,
         locale=locale,
-        sharpness_min=cfg.image_sharpness_min,
-        similarity_threshold=cfg.image_similarity_threshold,
+        system_version=cfg.system_version,
         context_max_messages=cfg.hitl_context_max_messages,
         context_window_minutes=cfg.hitl_context_window_minutes,
         max_attempts=cfg.worker_max_attempts,
@@ -143,7 +144,7 @@ async def run() -> None:
     from telegram.ext import ApplicationBuilder
     controller = TelegramBotController(
         start_svc, finish_svc, ingest_photo_svc, ingest_msg_svc, register_fp_svc, hitl_svc,
-        admin_repo, assistant_repo, project_repo, inspection_repo, telegram_gw, locale,
+        admin_repo, assistant_repo, project_repo, inspection_repo, review_repo, telegram_gw, locale,
     )
 
     app = ApplicationBuilder().token(cfg.bot_http_api_token).build()

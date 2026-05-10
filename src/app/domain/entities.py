@@ -23,7 +23,6 @@ class QueueStatus(str, Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
-    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
 
 
 class InspectionStatus(str, Enum):
@@ -35,6 +34,12 @@ class ReviewTrigger(str, Enum):
     SUSPICIOUS_CATEGORY = "SUSPICIOUS_CATEGORY"
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
     INVALID_JSON = "INVALID_JSON"
+
+
+class IngestResult(str, Enum):
+    QUEUED = "QUEUED"
+    REJECTED_BLURRY = "REJECTED_BLURRY"
+    NO_PROJECT = "NO_PROJECT"
 
 
 @dataclass(frozen=True)
@@ -100,16 +105,15 @@ class QueueItem:
     project_id: str
     file_id: str
     chat_id: str
+    system_version: str
     cluster_id: str
     is_representative: bool
-    sharpness_score: float
     status: QueueStatus
     attempts: int
     received_at: datetime
     last_error: str
     worker_id: str
     processed_at: str
-    id: int = 0
 
 
 @dataclass(frozen=True)
@@ -120,13 +124,15 @@ class ChatMessage:
     text: str
     timestamp: datetime
     file_id: str = ""
+    is_included_in_history: bool = True
+    rejected_reason: str = ""
 
 
 @dataclass(frozen=True)
 class InspectionRecord:
     project_id: str
-    queue_id: int
     image_file_id: str
+    system_version: str
     item_id: str
     category: str
     inspection_status: InspectionStatus
@@ -135,7 +141,6 @@ class InspectionRecord:
     tech_observation: str
     ai_system_observation: str
     is_suspicious: bool
-    validated_by_admin: bool
     created_at: datetime
     id: int = 0
 
@@ -146,7 +151,7 @@ class HumanReviewRequest:
     trigger: ReviewTrigger
     question: str
     asked_at: datetime
-    queue_id: int
+    image_file_id: str
     answer: str
     reviewer_user_id: str
     answered_at: str

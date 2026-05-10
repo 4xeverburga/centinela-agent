@@ -29,3 +29,6 @@ class FakeTelegramGateway(TelegramGateway):
 
     async def send_document(self, chat_id: str, file_bytes: bytes, filename: str) -> None:
         self.sent_documents.append((chat_id, file_bytes, filename))
+
+    async def send_photo(self, chat_id: str, file_id: str, caption: str) -> None:
+        self.sent_messages.append((chat_id, f"[photo:{file_id}] {caption}"))
