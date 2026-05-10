@@ -14,7 +14,7 @@ _SCHEMA_EXAMPLE = """{{
   "status": "<DURANTE (work in progress) | DESPUES (work completed)>",
   "location_ref": "<location reference on the floor plan>",
   "ocr": "<text extracted from the image, empty if none>",
-  "observation": "<technician comment related to this image, empty if none>",
+  "observation": "<technician comments related to this image, empty if none>",
   "system_observation": "<system-detected technical observations, or anomaly reason if is_suspicious=true; empty if none>",
   "is_suspicious": <true | false>
 }}"""
@@ -27,11 +27,11 @@ USER_PROMPT_TEMPLATE = (
     "exposed wiring, equipment being mounted, bracket open, technician on scene).\n"
     "   - DESPUES: photo taken AFTER the work is completed (equipment in final position, "
     "covers closed, no debris, clean and functional installation).\n"
-    "   Use the context history to infer the relative state of this image.\n"
+    "   The status is determined SOLELY from the visual evidence in the image, NOT from the context of previous messages or inspections. If the equipment looks closed and finished, it is DESPUES even if prior images of the same equipment were DURANTE.\n"
     "2. Extract IDs, brands or serial numbers (ocr field).\n"
     "3. Locate the equipment on the floor plan using visual references.\n"
     "4. If the category breaks the context pattern, set is_suspicious=true.\n"
-    "5. Generate observation only if there is a related human comment.\n"
+    "5. Generate observation only if there are related human comments.\n"
     "6. Generate system_observation if you detect visual faults not mentioned.\n\n"
     "IMPORTANT: Respond ONLY with a valid JSON object using "
     "EXACTLY these fields (no additional fields):\n"
@@ -54,7 +54,8 @@ ONBOARDING = (
 START_GROUP_ONLY = "The /iniciar command can only be used in a group."
 START_ADMIN_ONLY = "Only an authorized admin can start a project."
 START_DM_TEXT = (
-    "\U0001f4cb Project started: *{name}*\n\n"
+    "\U0001f4cb Project started: {name}\n"
+    "ID: {project_id}\n\n"
     "Send me the floor plan as a photo or document in this private chat "
     "and I'll register it automatically.\n\n"
     "You can also send me special instructions for this project."

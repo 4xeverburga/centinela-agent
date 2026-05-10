@@ -14,7 +14,7 @@ _SCHEMA_EXAMPLE = """{{
   "status": "<DURANTE (trabajo en progreso) | DESPUES (trabajo completado)>",
   "location_ref": "<referencia de ubicación en el plano>",
   "ocr": "<texto extraído de la imagen, vacío si no hay>",
-  "observation": "<comentario del técnico relacionado, vacío si no hay>",
+  "observation": "<comentarios del técnico relacionado, vacío si no hay>",
   "system_observation": "<observación técnica del sistema, vacío si no hay>",
   "is_suspicious": <true | false>
 }}"""
@@ -27,11 +27,11 @@ USER_PROMPT_TEMPLATE = (
     "cableado expuesto, equipo siendo montado, soporte sin cerrar, técnico en escena).\n"
     "   - DESPUES: foto tomada DESPUÉS de completar el trabajo (equipo en posición final, "
     "tapas cerradas, sin residuos de obra, instalación limpia y funcional).\n"
-    "   Usa el historial de contexto para inferir el estado relativo de esta imagen.\n"
+    "   El estado se determina ÚNICAMENTE por la evidencia visual de la imagen, NO por el contexto de mensajes o inspecciones anteriores. Si el equipo se ve cerrado y terminado, es DESPUES aunque imágenes previas del mismo equipo fueran DURANTE.\n"
     "2. Extrae IDs, marcas o números de serie (campo ocr).\n"
     "3. Ubica el equipo en el plano usando las referencias visuales.\n"
     "4. Si la categoría rompe el patrón del contexto, marca is_suspicious=true.\n"
-    "5. Genera observation solo si hay un comentario humano relacionado.\n"
+    "5. Genera observation solo si hay un comentario o comentarios humanos relacionados.\n"
     "6. Genera system_observation si detectas fallas visuales no mencionadas.\n\n"
     "IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido usando "
     "EXACTAMENTE estos campos (sin campos adicionales):\n"
@@ -54,7 +54,8 @@ ONBOARDING = (
 START_GROUP_ONLY = "El comando /iniciar solo puede usarse en un grupo."
 START_ADMIN_ONLY = "Solo un administrador autorizado puede iniciar un proyecto."
 START_DM_TEXT = (
-    "\U0001f4cb Proyecto iniciado: *{name}*\n\n"
+    "\U0001f4cb Proyecto iniciado: {name}\n"
+    "ID: {project_id}\n\n"
     "Envíame el plano del local como foto o documento en este chat privado "
     "y lo registraré automáticamente.\n\n"
     "También puedes enviarme instrucciones especiales para este proyecto."
