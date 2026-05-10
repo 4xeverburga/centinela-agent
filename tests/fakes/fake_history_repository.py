@@ -11,22 +11,29 @@ class FakeHistoryRepository(HistoryRepository):
     async def save(self, project_id: str, message: ChatMessage) -> None:
         self._store.append((project_id, message))
 
-    async def get_recent_for_user(
-        self, project_id: str, telegram_user_id: str, max_messages: int, window_minutes: int
+    async def get_context_around(
+        self,
+        project_id: str,
+        anchor: datetime,
+        max_before: int,
+        max_after: int,
+        before_minutes: int,
+        after_minutes: int,
     ) -> list[ChatMessage]:
-        cutoff = datetime.now() - timedelta(minutes=window_minutes)
-        result = []
-        for pid, msg in reversed(self._store):
+        before_cutoff = anchor - timedelta(minutes=before_minutes)
+        after_cutoff = anchor + timedelta(minutes=after_minutes)
+        before: list[ChatMessage] = []
+        after: list[ChatMessage] = []
+        for pid, msg in self._store:
             if pid != project_id:
                 continue
-            if telegram_user_id and msg.telegram_user_id != telegram_user_id:
-                continue
-            if msg.timestamp < cutoff:
-                break
-            result.append(msg)
-            if len(result) >= max_messages:
-                break
-        return list(reversed(result))
+            if before_cutoff <= msg.timestamp < anchor:
+                before.append(msg)
+            elif anchor < msg.timestamp <= after_cutoff:
+                after.append(msg)
+        before.sort(key=lambda m: m.timestamp)
+        after.sort(key=lambda m: m.timestamp)
+        return before[-max_before:] + after[:max_after]
 
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]:
         return [msg for pid, msg in self._store if pid == project_id]

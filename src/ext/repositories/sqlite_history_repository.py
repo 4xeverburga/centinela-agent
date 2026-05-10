@@ -31,28 +31,41 @@ class SqliteHistoryRepository(HistoryRepository):
         )
         await self._conn.commit()
 
-    async def get_recent_for_user(
-        self, project_id: str, telegram_user_id: str, max_messages: int, window_minutes: int
+    async def get_context_around(
+        self,
+        project_id: str,
+        anchor: datetime,
+        max_before: int,
+        max_after: int,
+        before_minutes: int,
+        after_minutes: int,
     ) -> list[ChatMessage]:
-        cutoff = (datetime.now() - timedelta(minutes=window_minutes)).isoformat()
-        if telegram_user_id:
-            cursor = await self._conn.execute(
-                """SELECT * FROM chat_history
-                   WHERE project_id = ? AND telegram_user_id = ? AND timestamp >= ?
-                     AND is_included_in_history = 1
-                   ORDER BY timestamp DESC LIMIT ?""",
-                (project_id, telegram_user_id, cutoff, max_messages),
-            )
-        else:
-            cursor = await self._conn.execute(
-                """SELECT * FROM chat_history
-                   WHERE project_id = ? AND timestamp >= ?
-                     AND is_included_in_history = 1
-                   ORDER BY timestamp DESC LIMIT ?""",
-                (project_id, cutoff, max_messages),
-            )
-        rows = await cursor.fetchall()
-        return [self._row_to_message(r) for r in reversed(rows)]
+        anchor_iso = anchor.isoformat()
+        before_cutoff = (anchor - timedelta(minutes=before_minutes)).isoformat()
+        after_cutoff = (anchor + timedelta(minutes=after_minutes)).isoformat()
+
+        cursor_before = await self._conn.execute(
+            """SELECT * FROM chat_history
+               WHERE project_id = ? AND is_included_in_history = 1
+                 AND timestamp >= ? AND timestamp < ?
+               ORDER BY timestamp DESC LIMIT ?""",
+            (project_id, before_cutoff, anchor_iso, max_before),
+        )
+        rows_before = await cursor_before.fetchall()
+
+        cursor_after = await self._conn.execute(
+            """SELECT * FROM chat_history
+               WHERE project_id = ? AND is_included_in_history = 1
+                 AND timestamp > ? AND timestamp <= ?
+               ORDER BY timestamp ASC LIMIT ?""",
+            (project_id, anchor_iso, after_cutoff, max_after),
+        )
+        rows_after = await cursor_after.fetchall()
+
+        return (
+            [self._row_to_message(r) for r in reversed(rows_before)]
+            + [self._row_to_message(r) for r in rows_after]
+        )
 
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]:
         cursor = await self._conn.execute(

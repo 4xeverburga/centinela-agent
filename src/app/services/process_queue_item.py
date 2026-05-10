@@ -34,7 +34,8 @@ class ProcessQueueItemService:
         locale: ModuleType,
         system_version: str,
         context_max_messages: int,
-        context_window_minutes: int,
+        context_window_before_minutes: int,
+        context_window_after_minutes: int,
         max_attempts: int,
         backoff_base: float,
     ):
@@ -50,7 +51,8 @@ class ProcessQueueItemService:
         self._locale = locale
         self._system_version = system_version
         self._context_max_messages = context_max_messages
-        self._context_window_minutes = context_window_minutes
+        self._context_window_before_minutes = context_window_before_minutes
+        self._context_window_after_minutes = context_window_after_minutes
         self._max_attempts = max_attempts
         self._backoff_base = backoff_base
 
@@ -81,11 +83,13 @@ class ProcessQueueItemService:
             if project.floor_plan_file_id:
                 floor_plan_bytes = await self._telegram.download_file(project.floor_plan_file_id)
 
-            chat_messages = await self._history_repo.get_recent_for_user(
+            chat_messages = await self._history_repo.get_context_around(
                 project.project_id,
-                "",
+                item.received_at,
                 self._context_max_messages,
-                self._context_window_minutes,
+                self._context_max_messages,
+                self._context_window_before_minutes,
+                self._context_window_after_minutes,
             )
 
             inspections_by_file_id: dict[str, dict] = {}

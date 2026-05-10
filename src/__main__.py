@@ -126,8 +126,9 @@ async def run() -> None:
         clock=clock,
         locale=locale,
         system_version=cfg.system_version,
-        context_max_messages=cfg.hitl_context_max_messages,
-        context_window_minutes=cfg.hitl_context_window_minutes,
+        context_max_messages=cfg.context_max_messages,
+        context_window_before_minutes=cfg.context_window_before_minutes,
+        context_window_after_minutes=cfg.context_window_after_minutes,
         max_attempts=cfg.worker_max_attempts,
         backoff_base=cfg.worker_backoff_base_seconds,
     )

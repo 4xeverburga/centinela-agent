@@ -46,9 +46,10 @@ class Config(BaseSettings):
     # Project lifecycle
     project_auto_close_hours: int = Field(alias="PROJECT_AUTO_CLOSE_HOURS")
 
-    # HITL
-    hitl_context_max_messages: int = Field(alias="HITL_CONTEXT_MAX_MESSAGES")
-    hitl_context_window_minutes: int = Field(alias="HITL_CONTEXT_WINDOW_MINUTES")
+    # HITL context window
+    context_max_messages: int = Field(alias="CONTEXT_MAX_MESSAGES")
+    context_window_before_minutes: int = Field(alias="CONTEXT_WINDOW_BEFORE_MINUTES")
+    context_window_after_minutes: int = Field(alias="CONTEXT_WINDOW_AFTER_MINUTES")
 
     # Admin whitelist (comma-separated Telegram user IDs)
     admin_telegram_user_ids: str = Field(alias="ADMIN_TELEGRAM_USER_IDS")
