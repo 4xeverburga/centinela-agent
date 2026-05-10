@@ -73,6 +73,9 @@ Thumbs.db
 # --- Project-specific ---
 docs/artifacts/out/**/*.tmp
 
+# Container image tarballs
+*.tar
+
 # SQLite WAL files
 *.db-shm
 *.db-wal
