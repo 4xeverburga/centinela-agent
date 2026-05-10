@@ -108,7 +108,6 @@ class QueueItem:
     system_version: str
     message_id: int
     cluster_id: str
-    is_representative: bool
     status: QueueStatus
     attempts: int
     received_at: datetime
@@ -134,9 +133,11 @@ class ChatMessage:
 
 @dataclass(frozen=True)
 class InspectionRecord:
+    chat_id: str
+    message_id: int
+    system_version: str
     project_id: str
     image_file_id: str
-    system_version: str
     item_id: str
     category: str
     inspection_status: InspectionStatus
@@ -146,7 +147,6 @@ class InspectionRecord:
     ai_system_observation: str
     is_suspicious: bool
     created_at: datetime
-    id: int = 0
 
 
 @dataclass(frozen=True)

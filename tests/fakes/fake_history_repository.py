@@ -42,3 +42,9 @@ class FakeHistoryRepository(HistoryRepository):
 
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]:
         return [msg for pid, msg in self._store if pid == project_id]
+
+    async def get_caption_in_cluster(self, project_id: str, cluster_id: str) -> str:
+        for pid, msg in self._store:
+            if pid == project_id and msg.cluster_id == cluster_id and msg.text:
+                return msg.text
+        return ""

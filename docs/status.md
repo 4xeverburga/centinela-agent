@@ -1,7 +1,7 @@
 # Project Status
 
 **Project**: Centinela
-**Date**: 2026-05-08
+**Date**: 2026-05-10
 **Phase**: Development
 
 ## Team Ownership
@@ -34,6 +34,10 @@
 - [x] **[Ever Burga]** Fixed HITL callback bug (was using inspection_id as review_id). Improved HITL UX with clear button labels. See `docs/logbooks/2026-05-08.md`.
 - [x] **[Ever Burga]** Fixed media-group caption capture — photo captions now saved to chat_history. See `docs/logbooks/2026-05-08.md`.
 - [x] **[Ever Burga]** Removed `validated_by_admin` from inspections; review state resolved exclusively via `human_reviews` table.
+- [x] **[Ever Burga]** Composite PK chain: `chat_history(chat_id, message_id)` → `inspections_queue(chat_id, message_id, system_version)` → `inspections(chat_id, message_id, system_version)`. Dropped all auto-increment IDs. See `docs/logbooks/2026-05-10.md` entry 2.
+- [x] **[Ever Burga]** Context window anchored by `ChatMessage` with `message_id` ordering and per-side limits.
+- [x] **[Ever Burga]** Media group caption inheritance — later photos in a group inherit the caption from the first. See `docs/logbooks/2026-05-10.md` entry 2.
+- [x] **[Ever Burga]** Removed `is_representative` from queue — non-representative images stay in `chat_history` only.
 
 ## Pending
 
@@ -50,7 +54,6 @@
 ## TBD / Open Questions
 
 - **`TelegramGateway` in `app/ports/`**: Telegram is a 3rd-party concern and arguably should not leak into the application core as a named port. Options: (a) rename to a generic `MessagingGateway` / `NotificationGateway` with Telegram as one adapter, (b) move download/send responsibilities to separate `FileDownloader` and `Notifier` ports so the core stays transport-agnostic. No decision yet — revisit before adding a second channel.
-- **`get_recent_for_user` dual-mode behaviour**: when called with a non-empty `telegram_user_id` it filters to that user only; when called with `""` it returns all users. `ProcessQueueItemService` always passes `""` (all users), which is the correct behaviour for building inspection context. The method name and signature are misleading — consider splitting into `get_recent_for_user(uid)` and `get_recent_for_project()`, or making the intent explicit via an overload/optional param with a clear default.
 
 ## Next Milestone
 

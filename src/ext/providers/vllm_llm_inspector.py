@@ -74,6 +74,8 @@ class VllmLLMInspector(LLMInspector):
         floor_plan_image: bytes,
         chat_window: list[ChatMessage],
         inspections_by_file_id: dict[str, dict],
+        chat_id: str,
+        message_id: int,
         project_id: str,
         system_version: str,
         image_file_id: str,
@@ -131,9 +133,11 @@ class VllmLLMInspector(LLMInspector):
         except (json.JSONDecodeError, ValidationError) as exc:
             logger.error("Failed to parse LLM response: %s", raw[:500])
             return InspectionRecord(
+                chat_id=chat_id,
+                message_id=message_id,
+                system_version=system_version,
                 project_id=project_id,
                 image_file_id=image_file_id,
-                system_version=system_version,
                 item_id="PARSE_ERROR",
                 category="UNKNOWN",
                 inspection_status=InspectionStatus.DURANTE,
@@ -146,9 +150,11 @@ class VllmLLMInspector(LLMInspector):
             )
 
         return InspectionRecord(
+            chat_id=chat_id,
+            message_id=message_id,
+            system_version=system_version,
             project_id=project_id,
             image_file_id=image_file_id,
-            system_version=system_version,
             item_id="",
             category=payload_obj.category,
             inspection_status=InspectionStatus(payload_obj.status),

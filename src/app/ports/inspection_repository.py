@@ -5,7 +5,7 @@ from app.domain.entities import InspectionRecord
 
 class InspectionRepository(ABC):
     @abstractmethod
-    async def save(self, record: InspectionRecord) -> int: ...
+    async def save(self, record: InspectionRecord) -> None: ...
 
     @abstractmethod
     async def get_recent_for_project(

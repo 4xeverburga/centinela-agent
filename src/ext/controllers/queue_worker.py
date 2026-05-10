@@ -45,5 +45,5 @@ class QueueWorker:
             item = await self._queue_repo.get_oldest_pending(project.project_id, self._grace_period)
             if item is None:
                 continue
-            logger.info("Processing queue item %s for project %s", item.file_id, project.project_id)
-            await self._process_service.execute(item.file_id, item.system_version)
+            logger.info("Processing queue item chat_id=%s message_id=%s for project %s", item.chat_id, item.message_id, project.project_id)
+            await self._process_service.execute(item.chat_id, item.message_id, item.system_version)

@@ -83,7 +83,7 @@ async def test_ingest_photo_queues_item():
     result = await svc.execute("123", "file-abc", "u2", "Tech Juan", "camera maintenance", "", 42)
 
     assert result == IngestResult.QUEUED
-    item = await queue_repo.get_by_key("file-abc", "may2026:0.1")
+    item = await queue_repo.get_by_key("123", 42, "may2026:0.1")
     assert item is not None
     assert item.file_id == "file-abc"
     assert item.project_id == "p1"

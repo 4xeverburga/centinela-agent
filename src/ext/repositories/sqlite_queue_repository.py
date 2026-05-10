@@ -13,13 +13,13 @@ class SqliteQueueRepository(QueueRepository):
     async def save(self, item: QueueItem) -> None:
         await self._conn.execute(
             """INSERT INTO inspections_queue
-               (file_id, system_version, project_id, chat_id, message_id, cluster_id,
-                is_representative, status, attempts, received_at, last_error,
+               (chat_id, message_id, system_version, project_id, file_id, cluster_id,
+                status, attempts, received_at, last_error,
                 worker_id, processed_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                item.file_id, item.system_version, item.project_id, item.chat_id,
-                item.message_id, item.cluster_id, int(item.is_representative), item.status.value,
+                item.chat_id, item.message_id, item.system_version, item.project_id,
+                item.file_id, item.cluster_id, item.status.value,
                 item.attempts, item.received_at.isoformat(), item.last_error,
                 item.worker_id, item.processed_at,
             ),
@@ -54,30 +54,30 @@ class SqliteQueueRepository(QueueRepository):
         return [self._row_to_item(r) for r in rows]
 
     async def update_status(
-        self, file_id: str, system_version: str, status: QueueStatus,
+        self, chat_id: str, message_id: int, system_version: str, status: QueueStatus,
         attempts: int, last_error: str, worker_id: str,
     ) -> None:
         await self._conn.execute(
             """UPDATE inspections_queue
                SET status = ?, attempts = ?, last_error = ?, worker_id = ?
-               WHERE file_id = ? AND system_version = ?""",
-            (status.value, attempts, last_error, worker_id, file_id, system_version),
+               WHERE chat_id = ? AND message_id = ? AND system_version = ?""",
+            (status.value, attempts, last_error, worker_id, chat_id, message_id, system_version),
         )
         await self._conn.commit()
 
-    async def mark_completed(self, file_id: str, system_version: str, processed_at: str) -> None:
+    async def mark_completed(self, chat_id: str, message_id: int, system_version: str, processed_at: str) -> None:
         await self._conn.execute(
             """UPDATE inspections_queue
                SET status = 'COMPLETED', processed_at = ?
-               WHERE file_id = ? AND system_version = ?""",
-            (processed_at, file_id, system_version),
+               WHERE chat_id = ? AND message_id = ? AND system_version = ?""",
+            (processed_at, chat_id, message_id, system_version),
         )
         await self._conn.commit()
 
-    async def get_by_key(self, file_id: str, system_version: str) -> QueueItem | None:
+    async def get_by_key(self, chat_id: str, message_id: int, system_version: str) -> QueueItem | None:
         cursor = await self._conn.execute(
-            "SELECT * FROM inspections_queue WHERE file_id = ? AND system_version = ?",
-            (file_id, system_version),
+            "SELECT * FROM inspections_queue WHERE chat_id = ? AND message_id = ? AND system_version = ?",
+            (chat_id, message_id, system_version),
         )
         row = await cursor.fetchone()
         if row is None:
@@ -91,7 +91,6 @@ class SqliteQueueRepository(QueueRepository):
             chat_id=row["chat_id"], system_version=row["system_version"],
             message_id=row["message_id"],
             cluster_id=row["cluster_id"],
-            is_representative=bool(row["is_representative"]),
             status=QueueStatus(row["status"]),
             attempts=row["attempts"],
             received_at=datetime.fromisoformat(row["received_at"]),

@@ -10,17 +10,19 @@ class SqliteInspectionRepository(InspectionRepository):
     def __init__(self, conn: aiosqlite.Connection):
         self._conn = conn
 
-    async def save(self, record: InspectionRecord) -> int:
-        cursor = await self._conn.execute(
+    async def save(self, record: InspectionRecord) -> None:
+        await self._conn.execute(
             """INSERT INTO inspections
-               (project_id, image_file_id, system_version, item_id, category,
-                inspection_status, location_on_map, ocr_data, tech_observation,
-                ai_system_observation, is_suspicious, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (chat_id, message_id, system_version, project_id, image_file_id,
+                item_id, category, inspection_status, location_on_map, ocr_data,
+                tech_observation, ai_system_observation, is_suspicious, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                record.chat_id,
+                record.message_id,
+                record.system_version,
                 record.project_id,
                 record.image_file_id,
-                record.system_version,
                 record.item_id,
                 record.category,
                 record.inspection_status.value,
@@ -33,7 +35,6 @@ class SqliteInspectionRepository(InspectionRepository):
             ),
         )
         await self._conn.commit()
-        return cursor.lastrowid
 
     async def get_recent_for_project(
         self, project_id: str, limit: int
@@ -81,10 +82,11 @@ class SqliteInspectionRepository(InspectionRepository):
     @staticmethod
     def _row_to_record(row: aiosqlite.Row) -> InspectionRecord:
         return InspectionRecord(
-            id=row["id"],
+            chat_id=row["chat_id"],
+            message_id=row["message_id"],
+            system_version=row["system_version"],
             project_id=row["project_id"],
             image_file_id=row["image_file_id"],
-            system_version=row["system_version"],
             item_id=row["item_id"],
             category=row["category"],
             inspection_status=InspectionStatus(row["inspection_status"]),

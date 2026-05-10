@@ -86,6 +86,18 @@ class SqliteHistoryRepository(HistoryRepository):
         rows = await cursor.fetchall()
         return [self._row_to_message(r) for r in rows]
 
+    async def get_caption_in_cluster(self, project_id: str, cluster_id: str) -> str:
+        cursor = await self._conn.execute(
+            """SELECT text FROM chat_history
+               WHERE project_id = ? AND cluster_id = ? AND text != ''
+               LIMIT 1""",
+            (project_id, cluster_id),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return ""
+        return row["text"]
+
     @staticmethod
     def _row_to_message(row: aiosqlite.Row) -> ChatMessage:
         return ChatMessage(

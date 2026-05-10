@@ -18,7 +18,8 @@ class QueueRepository(ABC):
     @abstractmethod
     async def update_status(
         self,
-        file_id: str,
+        chat_id: str,
+        message_id: int,
         system_version: str,
         status: QueueStatus,
         attempts: int,
@@ -27,7 +28,7 @@ class QueueRepository(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def mark_completed(self, file_id: str, system_version: str, processed_at: str) -> None: ...
+    async def mark_completed(self, chat_id: str, message_id: int, system_version: str, processed_at: str) -> None: ...
 
     @abstractmethod
-    async def get_by_key(self, file_id: str, system_version: str) -> QueueItem | None: ...
+    async def get_by_key(self, chat_id: str, message_id: int, system_version: str) -> QueueItem | None: ...

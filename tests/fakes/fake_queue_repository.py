@@ -7,7 +7,7 @@ class FakeQueueRepository(QueueRepository):
         self._store: dict[str, QueueItem] = {}
 
     async def save(self, item: QueueItem) -> None:
-        key = f"{item.file_id}:{item.system_version}"
+        key = f"{item.chat_id}:{item.message_id}:{item.system_version}"
         self._store[key] = item
 
     async def get_oldest_pending(self, project_id: str, min_age_seconds: int) -> QueueItem | None:
@@ -31,23 +31,23 @@ class FakeQueueRepository(QueueRepository):
         ]
 
     async def update_status(
-        self, file_id: str, system_version: str, status: QueueStatus,
+        self, chat_id: str, message_id: int, system_version: str, status: QueueStatus,
         attempts: int, last_error: str, worker_id: str,
     ) -> None:
         from dataclasses import replace
-        key = f"{file_id}:{system_version}"
+        key = f"{chat_id}:{message_id}:{system_version}"
         item = self._store[key]
         self._store[key] = replace(
             item, status=status, attempts=attempts, last_error=last_error, worker_id=worker_id
         )
 
-    async def mark_completed(self, file_id: str, system_version: str, processed_at: str) -> None:
+    async def mark_completed(self, chat_id: str, message_id: int, system_version: str, processed_at: str) -> None:
         from dataclasses import replace
-        key = f"{file_id}:{system_version}"
+        key = f"{chat_id}:{message_id}:{system_version}"
         item = self._store[key]
         self._store[key] = replace(
             item, status=QueueStatus.COMPLETED, processed_at=processed_at
         )
 
-    async def get_by_key(self, file_id: str, system_version: str) -> QueueItem | None:
-        return self._store.get(f"{file_id}:{system_version}")
+    async def get_by_key(self, chat_id: str, message_id: int, system_version: str) -> QueueItem | None:
+        return self._store.get(f"{chat_id}:{message_id}:{system_version}")

@@ -22,3 +22,6 @@ class HistoryRepository(ABC):
 
     @abstractmethod
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]: ...
+
+    @abstractmethod
+    async def get_caption_in_cluster(self, project_id: str, cluster_id: str) -> str: ...

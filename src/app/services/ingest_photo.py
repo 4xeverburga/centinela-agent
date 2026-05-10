@@ -52,6 +52,9 @@ class IngestPhotoService:
         user = await self._user_repo.get_by_id(telegram_user_id)
         role = user.role if user is not None else UserRole.TECNICO
 
+        if not caption and cluster_id:
+            caption = await self._history_repo.get_caption_in_cluster(project.project_id, cluster_id)
+
         # Download and check sharpness before queueing
         from app.domain.entities import ImagePayload
         raw_bytes = await self._telegram.download_file(file_id)
@@ -97,7 +100,6 @@ class IngestPhotoService:
             system_version=self._system_version,
             message_id=message_id,
             cluster_id=cluster_id,
-            is_representative=True,
             status=QueueStatus.PENDING,
             attempts=0,
             received_at=self._clock.now(),

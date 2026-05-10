@@ -4,15 +4,11 @@ from app.ports.inspection_repository import InspectionRepository
 
 class FakeInspectionRepository(InspectionRepository):
     def __init__(self):
-        self._store: dict[int, InspectionRecord] = {}
-        self._counter = 0
+        self._store: dict[str, InspectionRecord] = {}
 
-    async def save(self, record: InspectionRecord) -> int:
-        self._counter += 1
-        from dataclasses import replace
-        stored = replace(record, id=self._counter)
-        self._store[self._counter] = stored
-        return self._counter
+    async def save(self, record: InspectionRecord) -> None:
+        key = f"{record.chat_id}:{record.message_id}:{record.system_version}"
+        self._store[key] = record
 
     async def get_recent_for_project(
         self, project_id: str, limit: int

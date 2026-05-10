@@ -21,28 +21,27 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS inspections_queue (
-    file_id TEXT NOT NULL,
-    system_version TEXT NOT NULL,
-    project_id TEXT NOT NULL,
     chat_id TEXT NOT NULL,
     message_id INTEGER NOT NULL,
+    system_version TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    file_id TEXT NOT NULL,
     cluster_id TEXT NOT NULL DEFAULT '',
-    is_representative INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'PENDING',
     attempts INTEGER NOT NULL DEFAULT 0,
     received_at TEXT NOT NULL,
     last_error TEXT NOT NULL DEFAULT '',
     worker_id TEXT NOT NULL DEFAULT '',
     processed_at TEXT NOT NULL DEFAULT '',
-    PRIMARY KEY (file_id, system_version),
-    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+    PRIMARY KEY (chat_id, message_id, system_version),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id),
+    FOREIGN KEY (chat_id, message_id) REFERENCES chat_history(chat_id, message_id)
 );
 
 CREATE TABLE IF NOT EXISTS chat_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id TEXT NOT NULL,
     chat_id TEXT NOT NULL,
     message_id INTEGER NOT NULL,
+    project_id TEXT NOT NULL,
     telegram_user_id TEXT NOT NULL,
     display_name TEXT NOT NULL,
     role TEXT NOT NULL,
@@ -52,15 +51,16 @@ CREATE TABLE IF NOT EXISTS chat_history (
     timestamp TEXT NOT NULL,
     is_included_in_history INTEGER NOT NULL DEFAULT 1,
     rejected_reason TEXT NOT NULL DEFAULT '',
-    FOREIGN KEY (project_id) REFERENCES projects(project_id),
-    UNIQUE (chat_id, message_id)
+    PRIMARY KEY (chat_id, message_id),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
 
 CREATE TABLE IF NOT EXISTS inspections (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id TEXT NOT NULL,
+    message_id INTEGER NOT NULL,
+    system_version TEXT NOT NULL,
     project_id TEXT NOT NULL,
     image_file_id TEXT NOT NULL,
-    system_version TEXT NOT NULL DEFAULT '',
     item_id TEXT NOT NULL,
     category TEXT NOT NULL,
     inspection_status TEXT NOT NULL,
@@ -70,7 +70,9 @@ CREATE TABLE IF NOT EXISTS inspections (
     ai_system_observation TEXT NOT NULL DEFAULT '',
     is_suspicious INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
-    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+    PRIMARY KEY (chat_id, message_id, system_version),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id),
+    FOREIGN KEY (chat_id, message_id, system_version) REFERENCES inspections_queue(chat_id, message_id, system_version)
 );
 
 CREATE TABLE IF NOT EXISTS human_reviews (
