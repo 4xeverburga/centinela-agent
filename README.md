@@ -26,32 +26,44 @@ Maintenance contractors for retail security systems (CCTV, fire alarms) in Peru 
 
 ## Steps to Create the Infrastructure and Resources
 
-1. **Provision the GPU droplet** on DigitalOcean (AMD MI300X). Save its public IP and a private SSH key.
-2. **Start vLLM** on the droplet:
-   ```bash
-   # From your local machine (SSH key + IP configured in .env)
-   bash scripts/start_vllm.sh
-   bash scripts/check_vllm.sh   # wait until /v1/models returns the model
-   ```
-3. **Create the Telegram bot** via `@BotFather`, capture the HTTP API token.
-4. **Clone the repo locally** and configure the environment:
-   ```bash
-   pyenv install 3.13.0
-   pyenv local 3.13.0
-   python -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
-   cp env .env   # then fill real values; never commit .env
-   ```
-5. **Run the bot**:
-   ```bash
-   source .venv/bin/activate
-   PYTHONPATH=src:. python src/__main__.py
-   ```
-6. **Or run via container**:
-   ```bash
-   docker build -f containers/Containerfile.bot -t centinela-bot .
-   docker run --env-file .env centinela-bot
-   ```
+### Prerequisites
+
+- A **DigitalOcean AMD GPU droplet** (Instinct MI300X) with SSH access.
+- A **Telegram bot** created via `@BotFather` (HTTP API token).
+- `.env` file populated from `.env.example` with real values (bot token, droplet IP, SSH key path, HF token, etc.).
+
+### 1. Start vLLM on the GPU droplet
+
+```bash
+bash scripts/start_vllm.sh
+bash scripts/check_vllm.sh   # wait until /v1/models returns the model
+```
+
+### 2. Deploy the bot container to the droplet
+
+```bash
+bash scripts/deploy-bot.sh
+```
+
+This script archives the repo, uploads it to the droplet via SCP, builds the Docker image remotely, and starts the `centinela-bot` container (Telegram long-polling, no public port).
+
+### 3. Deploy the demo API container to the droplet
+
+```bash
+bash scripts/deploy-demo.sh
+```
+
+Builds the same image, starts the `centinela-demo` container (Flask API exposed on the port configured in `DEMO_PORT`), and opens the corresponding UFW rule.
+
+### 4. Verify
+
+```bash
+# Check both containers are running
+source .env && ssh -i "$DROPLET_SSH_PRV_KEY_PATH" root@"$DROPLET_IP" "docker ps"
+
+# Tail bot logs
+source .env && ssh -i "$DROPLET_SSH_PRV_KEY_PATH" root@"$DROPLET_IP" "docker logs -f centinela-bot"
+```
 
 ## Architecture (Summary)
 
