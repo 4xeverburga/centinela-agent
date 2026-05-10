@@ -47,14 +47,6 @@ bash scripts/deploy-bot.sh
 
 This script archives the repo, uploads it to the droplet via SCP, builds the Docker image remotely, and starts the `centinela-bot` container (Telegram long-polling, no public port).
 
-### 3. Deploy the demo API container to the droplet
-
-```bash
-bash scripts/deploy-demo.sh
-```
-
-Builds the same image, starts the `centinela-demo` container (Flask API exposed on the port configured in `DEMO_PORT`), and opens the corresponding UFW rule.
-
 ### 4. Verify
 
 ```bash
