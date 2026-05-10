@@ -12,10 +12,15 @@ def build_context_summary(
 
     lines = []
     for rec in recent_inspections:
-        lines.append(
+        line = (
             f"- {rec.category} ({rec.inspection_status.value}): "
-            f"ubicación={rec.location_on_map}, OCR={rec.ocr_data}"
+            f"ubicación={rec.location_on_map}"
         )
+        if rec.tech_observation:
+            line += f", obs_técnico='{rec.tech_observation}'"
+        if rec.ai_system_observation:
+            line += f", obs_sistema='{rec.ai_system_observation}'"
+        lines.append(line)
     return locale.CONTEXT_SUMMARY_HEADER + "\n" + "\n".join(lines)
 
 

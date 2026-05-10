@@ -11,19 +11,24 @@ SYSTEM_PROMPT = (
 
 _SCHEMA_EXAMPLE = """{{
   "category": "<tipo de equipo, ej: Cámara PTZ, Panel de Acceso, Sensor PIR>",
-  "status": "<DURANTE | DESPUES>",
+  "status": "<DURANTE (trabajo en progreso) | DESPUES (trabajo completado)>",
   "location_ref": "<referencia de ubicación en el plano>",
   "ocr": "<texto extraído de la imagen, vacío si no hay>",
   "observation": "<comentario del técnico relacionado, vacío si no hay>",
   "system_observation": "<observación técnica del sistema, vacío si no hay>",
   "is_suspicious": <true | false>
-}}"""   
+}}"""
 
 USER_PROMPT_TEMPLATE = (
     "[Ventana de Chat]\n{chat_window}\n\n"
     "[Metadata de Contexto]\n{context_summary}\n\n"
     "Analiza la imagen adjunta siguiendo estas instrucciones:\n"
-    "1. Clasifica el equipo y determina si la foto es DURANTE o DESPUES.\n"
+    "1. Clasifica el equipo y determina el estado de la intervención:\n"
+    "   - DURANTE: foto tomada MIENTRAS se realiza el trabajo (instalación en progreso, "
+    "cableado expuesto, equipo siendo montado, soporte sin cerrar, técnico en escena).\n"
+    "   - DESPUES: foto tomada DESPUÉS de completar el trabajo (equipo en posición final, "
+    "tapas cerradas, sin residuos de obra, instalación limpia y funcional).\n"
+    "   Usa el historial de contexto para inferir el estado relativo de esta imagen.\n"
     "2. Extrae IDs, marcas o números de serie (campo ocr).\n"
     "3. Ubica el equipo en el plano usando las referencias visuales.\n"
     "4. Si la categoría rompe el patrón del contexto, marca is_suspicious=true.\n"

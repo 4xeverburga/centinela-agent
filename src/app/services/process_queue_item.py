@@ -117,13 +117,19 @@ class ProcessQueueItemService:
             recent_inspections = await self._inspection_repo.get_recent_for_project(
                 project.project_id, 5
             )
+            seen_file_ids: set[str] = {
+                r.image_file_id for r in recent_inspections if not r.is_suspicious
+            }
             recent_json = [
                 {
                     "category": r.category,
                     "status": r.inspection_status.value,
                     "location_ref": r.location_on_map,
+                    "tech_observation": r.tech_observation,
+                    "system_observation": r.ai_system_observation,
                 }
                 for r in recent_inspections
+                if not r.is_suspicious
             ]
 
             chat_messages = await self._history_repo.get_recent_for_user(
@@ -132,6 +138,24 @@ class ProcessQueueItemService:
                 self._context_max_messages,
                 self._context_window_minutes,
             )
+
+            # Resolve image messages in the chat window to their inspection records.
+            # Only non-suspicious records are included; the current image is skipped.
+            for msg in chat_messages:
+                if not msg.file_id or msg.file_id == item.file_id:
+                    continue
+                if msg.file_id in seen_file_ids:
+                    continue
+                rec = await self._inspection_repo.get_by_image_file_id(msg.file_id)
+                if rec and not rec.is_suspicious:
+                    seen_file_ids.add(msg.file_id)
+                    recent_json.append({
+                        "category": rec.category,
+                        "status": rec.inspection_status.value,
+                        "location_ref": rec.location_on_map,
+                        "tech_observation": rec.tech_observation,
+                        "system_observation": rec.ai_system_observation,
+                    })
 
             record = await self._llm_inspector.inspect(
                 image=compressed,

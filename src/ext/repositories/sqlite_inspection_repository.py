@@ -82,6 +82,14 @@ class SqliteInspectionRepository(InspectionRepository):
         rows = await cursor.fetchall()
         return [self._row_to_record(r) for r in rows]
 
+    async def get_by_image_file_id(self, file_id: str) -> InspectionRecord | None:
+        cursor = await self._conn.execute(
+            "SELECT * FROM inspections WHERE image_file_id = ? ORDER BY created_at DESC LIMIT 1",
+            (file_id,),
+        )
+        row = await cursor.fetchone()
+        return self._row_to_record(row) if row else None
+
     @staticmethod
     def _row_to_record(row: aiosqlite.Row) -> InspectionRecord:
         return InspectionRecord(
