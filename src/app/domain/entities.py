@@ -16,6 +16,7 @@ class UserRole(str, Enum):
     TECNICO = "TECNICO"
     ASISTENTE = "ASISTENTE"
     ADMIN = "ADMIN"
+    SISTEMA = "SISTEMA"
 
 
 class QueueStatus(str, Enum):

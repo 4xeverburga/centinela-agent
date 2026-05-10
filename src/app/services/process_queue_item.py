@@ -2,9 +2,11 @@ import logging
 from types import ModuleType
 
 from app.domain.entities import (
+    ChatMessage,
     HumanReviewRequest,
     QueueStatus,
     ReviewTrigger,
+    UserRole,
 )
 from app.ports.clock import Clock
 from app.ports.history_repository import HistoryRepository
@@ -91,6 +93,20 @@ class ProcessQueueItemService:
                 self._context_window_before_minutes,
                 self._context_window_after_minutes,
             )
+
+            anchor_marker = ChatMessage(
+                telegram_user_id="",
+                display_name="CENTINELA",
+                role=UserRole.SISTEMA,
+                text=">>> imagen en análisis <<<",
+                timestamp=item.received_at,
+            )
+            insert_idx = len(chat_messages)
+            for j, m in enumerate(chat_messages):
+                if m.timestamp > item.received_at:
+                    insert_idx = j
+                    break
+            chat_messages.insert(insert_idx, anchor_marker)
 
             inspections_by_file_id: dict[str, dict] = {}
             for msg in chat_messages:
