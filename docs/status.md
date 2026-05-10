@@ -41,12 +41,14 @@
 
 ## Pending
 
-- [ ] **[Ever Burga]** Deploy bot container to cloud (DigitalOcean App Platform / Fly.io / etc.)
+- [x] **[Ever Burga]** Deployed bot container to AMD GPU droplet via `scripts/deploy-bot.sh` (Docker 29.3.0). `sentence-transformers` removed from requirements — was never used (deduplication uses pHash via `imagehash`).
 - [ ] **[Ever Burga]** Integration tests (SQLite repos, vLLM inspector with live model)
 - [ ] **[Ever Burga]** Auto-close stale projects after PROJECT_AUTO_CLOSE_HOURS
-- [ ] **[Ever Burga]** CLIP-based image embedder adapter (sentence-transformers)
+- [ ] **[Ever Burga]** CLIP-based image embedder adapter — currently using pHash (`imagehash`); CLIP would improve semantic similarity but requires `sentence-transformers` + `torch` (~1 GB) back as dependencies
 
 ## Risks / Blockers
+
+- `sentence-transformers` was listed as a dependency but never imported in production code. Removed to keep the Docker image lean (~1.5 GB saved). If CLIP-based deduplication is implemented, it must be re-added with a CPU-only torch pin (`--extra-index-url https://download.pytorch.org/whl/cpu`).
 
 - Gemma 4 requires vLLM **nightly** (>= v0.20.x); stable v0.17.1 does not support the `gemma4` architecture. Alternatives identified: SGLang, HF Inference Providers, llama.cpp GGUF.
 - Bot currently runs locally — needs cloud deployment for production use.

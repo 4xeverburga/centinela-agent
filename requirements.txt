@@ -16,12 +16,6 @@ Pillow==11.2.1
 opencv-python-headless==4.11.0.86
 imagehash==4.3.2
 
-# Semantic embeddings (CLIP adapter)
-# torch pulled in by sentence-transformers; pin CPU-only wheel to avoid ~2 GB of CUDA binaries
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.6.0+cpu
-sentence-transformers==4.1.0
-
 # Config / validation
 pydantic==2.11.4
 pydantic-settings==2.9.1
