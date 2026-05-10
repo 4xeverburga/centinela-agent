@@ -39,18 +39,42 @@ class SqliteHistoryRepository(HistoryRepository):
         before_minutes: int,
         after_minutes: int,
     ) -> list[ChatMessage]:
+        anchor_iso = anchor.isoformat()
         before_cutoff = (anchor - timedelta(minutes=before_minutes)).isoformat()
         after_cutoff = (anchor + timedelta(minutes=after_minutes)).isoformat()
 
-        cursor = await self._conn.execute(
+        cursor_before = await self._conn.execute(
             """SELECT * FROM chat_history
                WHERE project_id = ? AND is_included_in_history = 1
-                 AND timestamp >= ? AND timestamp <= ?
-               ORDER BY timestamp ASC LIMIT ?""",
-            (project_id, before_cutoff, after_cutoff, max_messages),
+                 AND timestamp >= ? AND timestamp < ?
+               ORDER BY timestamp DESC LIMIT ?""",
+            (project_id, before_cutoff, anchor_iso, max_messages),
         )
-        rows = await cursor.fetchall()
-        return [self._row_to_message(r) for r in rows]
+        rows_before = await cursor_before.fetchall()
+
+        cursor_anchor = await self._conn.execute(
+            """SELECT * FROM chat_history
+               WHERE project_id = ? AND is_included_in_history = 1
+                 AND timestamp = ?
+               ORDER BY rowid ASC""",
+            (project_id, anchor_iso),
+        )
+        rows_anchor = await cursor_anchor.fetchall()
+
+        cursor_after = await self._conn.execute(
+            """SELECT * FROM chat_history
+               WHERE project_id = ? AND is_included_in_history = 1
+                 AND timestamp > ? AND timestamp <= ?
+               ORDER BY timestamp ASC LIMIT ?""",
+            (project_id, anchor_iso, after_cutoff, max_messages),
+        )
+        rows_after = await cursor_after.fetchall()
+
+        return (
+            [self._row_to_message(r) for r in reversed(rows_before)]
+            + [self._row_to_message(r) for r in rows_anchor]
+            + [self._row_to_message(r) for r in rows_after]
+        )
 
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]:
         cursor = await self._conn.execute(

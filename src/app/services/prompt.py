@@ -24,22 +24,23 @@ def build_chronological_context(
             rendered_clusters.add(msg.cluster_id)
             cluster_msgs = [m for m in messages if m.cluster_id == msg.cluster_id]
             caption = next((m.text for m in cluster_msgs if m.text), "")
-            has_current = any(m.file_id == current_file_id for m in cluster_msgs)
-            parts = [
-                _format_inspection(insp)
-                for m in cluster_msgs
-                if m.file_id
-                for insp in [inspections_by_file_id.get(m.file_id)]
-                if insp
-            ]
+            photo_parts = []
+            for m in cluster_msgs:
+                if not m.file_id:
+                    continue
+                if m.file_id == current_file_id:
+                    photo_parts.append(">>> imagen en an\u00e1lisis <<<")
+                else:
+                    insp = inspections_by_file_id.get(m.file_id)
+                    if insp:
+                        photo_parts.append(_format_inspection(insp))
+                    else:
+                        photo_parts.append("[foto]")
             header = f"[{msg.role.value}] {msg.display_name}"
             if caption:
                 header += f": {caption}"
-            tag = ">>> grupo-fotos en an\u00e1lisis <<<" if has_current else "[grupo-fotos]"
-            if parts:
-                lines.append(header + f" {tag} " + " | ".join(parts))
-            elif has_current:
-                lines.append(header + f" {tag}")
+            if photo_parts:
+                lines.append(header + " [grupo-fotos] " + " | ".join(photo_parts))
         elif is_current:
             lines.append(f"[{msg.role.value}] {msg.display_name}: >>> imagen en an\u00e1lisis <<<")
         elif msg.text:
