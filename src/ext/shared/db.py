@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS inspections (
     is_suspicious INTEGER NOT NULL DEFAULT 0,
     validated_by_admin INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
-    anomaly_reason TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
 

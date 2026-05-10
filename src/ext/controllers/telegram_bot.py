@@ -65,6 +65,7 @@ class TelegramBotController:
 
     def register(self, app: Application) -> None:
         app.add_handler(CommandHandler("start", self._handle_onboarding))
+        app.add_handler(CommandHandler("hola", self._handle_onboarding))
         app.add_handler(CommandHandler("iniciar", self._handle_start))
         app.add_handler(CommandHandler("finalizar", self._handle_finish))
         app.add_handler(CommandHandler("plano", self._handle_plano))
@@ -279,7 +280,7 @@ class TelegramBotController:
             caption = self._locale.ALERT_CAPTION.format(
                 idx=idx,
                 category=alert.category,
-                reason=alert.anomaly_reason or "-",
+                reason=alert.ai_system_observation or "-",
                 location=alert.location_on_map or "-",
             )
             await self._telegram.send_photo(

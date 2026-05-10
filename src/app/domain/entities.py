@@ -137,7 +137,6 @@ class InspectionRecord:
     is_suspicious: bool
     validated_by_admin: bool
     created_at: datetime
-    anomaly_reason: str
     id: int = 0
 
 

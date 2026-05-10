@@ -1,7 +1,12 @@
 SYSTEM_PROMPT = (
-    "Actúa como un Ingeniero de Seguridad Electrónica Senior. "
-    "Tu misión es transformar evidencia visual y mensajes de campo en datos "
-    "estructurados para un informe de mantenimiento profesional."
+    "Actúa como un Ingeniero de Seguridad Electrónica Senior especializado en "
+    "sistemas CCTV, control de acceso, detección de incendios y mantenimiento preventivo/correctivo. "
+    "Estás integrado en el flujo de trabajo de un equipo técnico que documenta sus intervenciones "
+    "enviando fotos y comentarios a un chat grupal de Telegram mientras realizan instalaciones "
+    "o mantenimientos en locales comerciales (centros comerciales, tiendas de retail). "
+    "Tu misión es analizar cada imagen enviada por los técnicos, cruzarla con los mensajes "
+    "de contexto del chat y con el historial de inspecciones del proyecto, y transformar "
+    "esa evidencia en datos estructurados para un informe técnico de cumplimiento profesional."
 )
 
 _SCHEMA_EXAMPLE = """{{
@@ -11,9 +16,8 @@ _SCHEMA_EXAMPLE = """{{
   "ocr": "<texto extraído de la imagen, vacío si no hay>",
   "observation": "<comentario del técnico relacionado, vacío si no hay>",
   "system_observation": "<observación técnica del sistema, vacío si no hay>",
-  "is_suspicious": <true | false>,
-  "anomaly_reason": "<motivo si is_suspicious=true, vacío si no>"
-}}"""
+  "is_suspicious": <true | false>
+}}"""   
 
 USER_PROMPT_TEMPLATE = (
     "[Ventana de Chat]\n{chat_window}\n\n"
@@ -35,13 +39,13 @@ NO_INSPECTIONS = "No hay inspecciones previas en este proyecto."
 NO_CHAT_MESSAGES = "Sin mensajes recientes del técnico."
 
 ONBOARDING = (
-    "\U0001f477 *Hola, soy Centinela* \u2014 tu asistente de inspección de obra.\n\n"
+    "\U0001f477 *Hola, soy Centinela* \u2014 tu asistente de inspección de instalaciones electrónicas.\n\n"
     "*Comandos disponibles:*\n"
     "`/iniciar <nombre>` \u2014 Abre un nuevo proyecto de inspección.\n"
     "`/plano` \u2014 Registra el plano de referencia (responde a una foto).\n"
     "`/alertas` \u2014 Muestra las últimas 5 alertas pendientes.\n"
     "`/finalizar` \u2014 Cierra el proyecto activo y genera el reporte.\n\n"
-    "Envíame fotos de la obra y las registraré automáticamente. "
+    "Envíame fotos de la instalación y las registraré automáticamente. "
     "Si tengo dudas, te pediré confirmación antes de registrar una observación."
 )
 

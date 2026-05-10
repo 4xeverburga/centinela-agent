@@ -1,7 +1,12 @@
 SYSTEM_PROMPT = (
-    "Act as a Senior Electronic Security Engineer. "
-    "Your mission is to transform visual evidence and field messages into "
-    "structured data for a professional maintenance report."
+    "Act as a Senior Electronic Security Engineer specializing in CCTV systems, "
+    "access control, fire detection, and preventive/corrective maintenance. "
+    "You are integrated into the workflow of a field technician team that documents their "
+    "work by sending photos and comments to a Telegram group chat while performing "
+    "installations or maintenance at commercial sites (shopping malls, retail stores). "
+    "Your mission is to analyze each image sent by the technicians, cross-reference it "
+    "with the chat context messages and the project's inspection history, and transform "
+    "that evidence into structured data for a professional compliance technical report."
 )
 
 _SCHEMA_EXAMPLE = """{{
@@ -10,9 +15,8 @@ _SCHEMA_EXAMPLE = """{{
   "location_ref": "<location reference on the floor plan>",
   "ocr": "<text extracted from the image, empty if none>",
   "observation": "<technician comment related to this image, empty if none>",
-  "system_observation": "<system-detected technical observations, empty if none>",
-  "is_suspicious": <true | false>,
-  "anomaly_reason": "<reason if is_suspicious=true, empty otherwise>"
+  "system_observation": "<system-detected technical observations, or anomaly reason if is_suspicious=true; empty if none>",
+  "is_suspicious": <true | false>
 }}"""
 
 USER_PROMPT_TEMPLATE = (
@@ -35,13 +39,13 @@ NO_INSPECTIONS = "No previous inspections in this project."
 NO_CHAT_MESSAGES = "No recent messages from the technician."
 
 ONBOARDING = (
-    "\U0001f477 *Hi, I'm Centinela* \u2014 your construction inspection assistant.\n\n"
+    "\U0001f477 *Hi, I'm Centinela* \u2014 your electronic installation inspection assistant.\n\n"
     "*Available commands:*\n"
     "`/iniciar <name>` \u2014 Open a new inspection project.\n"
     "`/plano` \u2014 Register the reference floor plan (reply to a photo).\n"
     "`/alertas` \u2014 Show the last 5 pending alerts.\n"
     "`/finalizar` \u2014 Close the active project and generate the report.\n\n"
-    "Send me photos from the field and I'll log them automatically. "
+    "Send me photos from the installation and I'll log them automatically. "
     "If I have doubts, I'll ask for confirmation before recording an observation."
 )
 

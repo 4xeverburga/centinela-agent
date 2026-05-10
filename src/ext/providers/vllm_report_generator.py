@@ -42,7 +42,6 @@ class VllmReportGenerator(ReportGenerator):
                 "observation": r.tech_observation,
                 "system_observation": r.ai_system_observation,
                 "suspicious": r.is_suspicious,
-                "anomaly_reason": r.anomaly_reason,
             })
 
         chat_summary = []

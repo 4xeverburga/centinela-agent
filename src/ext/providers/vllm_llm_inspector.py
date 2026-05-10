@@ -63,7 +63,6 @@ class VllmLLMInspector(LLMInspector):
         # defaults for optional fields
         d.setdefault("observation", "")
         d.setdefault("system_observation", "")
-        d.setdefault("anomaly_reason", "")
         d.setdefault("is_suspicious", False)
         d.setdefault("ocr", "")
         d.setdefault("category", "UNKNOWN")
@@ -148,7 +147,6 @@ class VllmLLMInspector(LLMInspector):
                 is_suspicious=True,
                 validated_by_admin=False,
                 created_at=datetime.now(),
-                anomaly_reason="Invalid or non-conforming JSON from LLM",
             )
 
         return InspectionRecord(
@@ -165,7 +163,6 @@ class VllmLLMInspector(LLMInspector):
             is_suspicious=payload_obj.is_suspicious,
             validated_by_admin=False,
             created_at=datetime.now(),
-            anomaly_reason=payload_obj.anomaly_reason,
         )
 
     @staticmethod
@@ -184,5 +181,4 @@ class VllmLLMInspector(LLMInspector):
             is_suspicious=False,
             validated_by_admin=False,
             created_at=datetime.now(),
-            anomaly_reason="",
         )

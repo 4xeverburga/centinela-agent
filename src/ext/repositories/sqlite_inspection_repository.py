@@ -16,8 +16,8 @@ class SqliteInspectionRepository(InspectionRepository):
                (project_id, queue_id, image_file_id, item_id, category,
                 inspection_status, location_on_map, ocr_data, tech_observation,
                 ai_system_observation, is_suspicious, validated_by_admin,
-                created_at, anomaly_reason)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 record.project_id,
                 record.queue_id,
@@ -32,7 +32,6 @@ class SqliteInspectionRepository(InspectionRepository):
                 int(record.is_suspicious),
                 int(record.validated_by_admin),
                 record.created_at.isoformat(),
-                record.anomaly_reason,
             ),
         )
         await self._conn.commit()
@@ -100,5 +99,4 @@ class SqliteInspectionRepository(InspectionRepository):
             is_suspicious=bool(row["is_suspicious"]),
             validated_by_admin=bool(row["validated_by_admin"]),
             created_at=datetime.fromisoformat(row["created_at"]),
-            anomaly_reason=row["anomaly_reason"],
         )

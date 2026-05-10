@@ -120,9 +120,8 @@ Este prompt se ejecuta durante el procesamiento por lotes (Batch) para cada imag
   "location_ref": "string",
   "ocr": "string",
   "observation": "string",
-  "system_observation": "string",
-  "is_suspicious": boolean,
-  "anomaly_reason": "string"
+  "system_observation": "string (also used for anomaly reason when is_suspicious=true)",
+  "is_suspicious": boolean
 }
 
 ```

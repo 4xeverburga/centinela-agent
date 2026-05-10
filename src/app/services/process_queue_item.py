@@ -149,7 +149,7 @@ class ProcessQueueItemService:
                 review = HumanReviewRequest(
                     project_id=project.project_id,
                     trigger=ReviewTrigger.SUSPICIOUS_CATEGORY,
-                    question=f"Categoría sospechosa: {record.category}. {record.anomaly_reason}",
+                    question=f"Categoría sospechosa: {record.category}. {record.ai_system_observation}",
                     asked_at=self._clock.now(),
                     queue_id=item_id,
                     answer="",
