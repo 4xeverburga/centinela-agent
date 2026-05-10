@@ -41,6 +41,7 @@ class Config(BaseSettings):
     # Queue worker
     worker_max_attempts: int = Field(alias="WORKER_MAX_ATTEMPTS")
     worker_backoff_base_seconds: float = Field(alias="WORKER_BACKOFF_BASE_SECONDS")
+    worker_grace_period_seconds: int = Field(alias="WORKER_GRACE_PERIOD_SECONDS")
 
     # Project lifecycle
     project_auto_close_hours: int = Field(alias="PROJECT_AUTO_CLOSE_HOURS")

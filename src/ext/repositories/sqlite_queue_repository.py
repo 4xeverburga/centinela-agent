@@ -26,12 +26,15 @@ class SqliteQueueRepository(QueueRepository):
         )
         await self._conn.commit()
 
-    async def get_oldest_pending(self, project_id: str) -> QueueItem | None:
+    async def get_oldest_pending(self, project_id: str, min_age_seconds: int) -> QueueItem | None:
+        from datetime import datetime, timedelta
+        cutoff = (datetime.now() - timedelta(seconds=min_age_seconds)).isoformat()
         cursor = await self._conn.execute(
             """SELECT * FROM inspections_queue
                WHERE project_id = ? AND status = 'PENDING'
+                 AND received_at <= ?
                ORDER BY received_at ASC LIMIT 1""",
-            (project_id,),
+            (project_id, cutoff),
         )
         row = await cursor.fetchone()
         if row is None:

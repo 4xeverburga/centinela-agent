@@ -47,6 +47,11 @@
 - Gemma 4 requires vLLM **nightly** (>= v0.20.x); stable v0.17.1 does not support the `gemma4` architecture. Alternatives identified: SGLang, HF Inference Providers, llama.cpp GGUF.
 - Bot currently runs locally — needs cloud deployment for production use.
 
+## TBD / Open Questions
+
+- **`TelegramGateway` in `app/ports/`**: Telegram is a 3rd-party concern and arguably should not leak into the application core as a named port. Options: (a) rename to a generic `MessagingGateway` / `NotificationGateway` with Telegram as one adapter, (b) move download/send responsibilities to separate `FileDownloader` and `Notifier` ports so the core stays transport-agnostic. No decision yet — revisit before adding a second channel.
+- **`get_recent_for_user` dual-mode behaviour**: when called with a non-empty `telegram_user_id` it filters to that user only; when called with `""` it returns all users. `ProcessQueueItemService` always passes `""` (all users), which is the correct behaviour for building inspection context. The method name and signature are misleading — consider splitting into `get_recent_for_user(uid)` and `get_recent_for_project()`, or making the intent explicit via an overload/optional param with a clear default.
+
 ## Next Milestone
 
 **Milestone**: Deploy bot container to the cloud so the system runs fully headless (vLLM on droplet + bot in a managed container service).

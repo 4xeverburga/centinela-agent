@@ -10,10 +10,13 @@ class FakeQueueRepository(QueueRepository):
         key = f"{item.file_id}:{item.system_version}"
         self._store[key] = item
 
-    async def get_oldest_pending(self, project_id: str) -> QueueItem | None:
+    async def get_oldest_pending(self, project_id: str, min_age_seconds: int) -> QueueItem | None:
+        from datetime import datetime, timedelta
+        cutoff = datetime.now() - timedelta(seconds=min_age_seconds)
         pending = [
             i for i in self._store.values()
             if i.project_id == project_id and i.status == QueueStatus.PENDING
+            and i.received_at <= cutoff
         ]
         if not pending:
             return None

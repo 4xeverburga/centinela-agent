@@ -138,6 +138,7 @@ async def run() -> None:
         project_repo=project_repo,
         process_service=process_svc,
         poll_interval_seconds=cfg.worker_backoff_base_seconds,
+        grace_period_seconds=cfg.worker_grace_period_seconds,
     )
 
     from ext.controllers.telegram_bot import TelegramBotController
