@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# deploy-bot.sh — Build, upload, and run the centinela bot on the AMD GPU droplet.
+# deploy-bot.sh — Upload source and build/run the centinela bot on the AMD GPU droplet.
 # Idempotent: safe to run multiple times.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="centinela-bot"
-TAR_FILE="$REPO_ROOT/centinela-bot.tar"
+ARCHIVE="$REPO_ROOT/centinela-src.tar.gz"
 
 # Load SSH / droplet config from .env
 set -a
@@ -17,37 +17,39 @@ REMOTE="root@${DROPLET_IP}"
 SSH_OPTS=(-i "$DROPLET_SSH_PRV_KEY_PATH" -o StrictHostKeyChecking=no)
 SCP_OPTS=(-i "$DROPLET_SSH_PRV_KEY_PATH" -o StrictHostKeyChecking=no)
 
-echo "==> Building image: $IMAGE_NAME"
-podman build -f "$REPO_ROOT/containers/Containerfile.bot" -t "$IMAGE_NAME" "$REPO_ROOT"
+echo "==> Archiving tracked files (git archive)"
+git -C "$REPO_ROOT" archive --format=tar.gz HEAD -o "$ARCHIVE"
 
-echo "==> Saving image to $TAR_FILE"
-podman save "$IMAGE_NAME" -o "$TAR_FILE"
-
-echo "==> Uploading image tar to droplet ($DROPLET_IP)"
-scp "${SCP_OPTS[@]}" "$TAR_FILE" "$REMOTE:~/centinela-bot.tar"
+echo "==> Uploading source archive to droplet ($DROPLET_IP)"
+scp "${SCP_OPTS[@]}" "$ARCHIVE" "$REMOTE:~/centinela-src.tar.gz"
 
 echo "==> Uploading .env to droplet"
 scp "${SCP_OPTS[@]}" "$REPO_ROOT/.env" "$REMOTE:~/centinela.env"
 
-echo "==> Deploying on droplet"
+echo "==> Building and deploying on droplet"
 ssh "${SSH_OPTS[@]}" "$REMOTE" bash <<'REMOTE_SCRIPT'
 set -euo pipefail
 
 IMAGE_NAME="centinela-bot"
 DATA_DIR="$HOME/centinela-data"
+SRC_DIR="$HOME/centinela-src"
 
-echo "  -> Loading image"
-podman load -i ~/centinela-bot.tar
+echo "  -> Extracting source"
+rm -rf "$SRC_DIR" && mkdir -p "$SRC_DIR"
+tar -xzf ~/centinela-src.tar.gz -C "$SRC_DIR"
+
+echo "  -> Building image on droplet"
+docker build -f "$SRC_DIR/containers/Containerfile.bot" -t "$IMAGE_NAME" "$SRC_DIR"
 
 echo "  -> Stopping and removing existing container (if any)"
-podman stop "$IMAGE_NAME" 2>/dev/null || true
-podman rm   "$IMAGE_NAME" 2>/dev/null || true
+docker stop "$IMAGE_NAME" 2>/dev/null || true
+docker rm   "$IMAGE_NAME" 2>/dev/null || true
 
 echo "  -> Ensuring data directory exists"
 mkdir -p "$DATA_DIR"
 
 echo "  -> Starting container"
-podman run -d \
+docker run -d \
   --name "$IMAGE_NAME" \
   --restart=unless-stopped \
   --env-file ~/centinela.env \
@@ -56,11 +58,11 @@ podman run -d \
   "$IMAGE_NAME"
 
 echo "  -> Container status"
-podman ps --filter "name=$IMAGE_NAME"
+docker ps --filter "name=$IMAGE_NAME"
 REMOTE_SCRIPT
 
-echo "==> Deleting local tar file"
-rm -f "$TAR_FILE"
+echo "==> Deleting local archive"
+rm -f "$ARCHIVE"
 
 echo "==> Done. Tail logs with:"
-echo "    ssh ${SSH_OPTS[*]} $REMOTE podman logs -f $IMAGE_NAME"
+echo "    ssh ${SSH_OPTS[*]} $REMOTE docker logs -f $IMAGE_NAME"

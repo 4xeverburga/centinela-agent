@@ -16,7 +16,7 @@ Maintenance contractors for retail security systems (CCTV, fire alarms) in Peru 
 | Bot transport | Telegram Bot API (long polling). Bot: `@C3nt1nel_bot`. |
 | Persistence | SQLite local file (metadata only — **no image binaries are stored**; Telegram CDN is the source of truth via `file_id`). |
 | Runtime | Python 3.13.0 (`pyenv` + `venv`), dependencies pinned in `requirements.txt`. |
-| Container images | `vllm/vllm-openai-rocm:nightly` (GPU droplet), `Containerfile.bot` (bot — see `containers/`). |
+| Container images | `vllm/vllm-openai-rocm:nightly` (GPU droplet), `Containerfile.bot` (bot — see `containers/`). Built and run with **Docker 29.3.0** on the droplet. |
 
 > Detailed product/engineering spec: [docs/artifacts/in/product_def.md](docs/artifacts/in/product_def.md)
 
@@ -45,8 +45,8 @@ Maintenance contractors for retail security systems (CCTV, fire alarms) in Peru 
    ```
 6. **Or run via container**:
    ```bash
-   podman build -f containers/Containerfile.bot -t centinela-bot .
-   podman run --env-file .env centinela-bot
+   docker build -f containers/Containerfile.bot -t centinela-bot .
+   docker run --env-file .env centinela-bot
    ```
 
 ## Architecture (Summary)
@@ -68,7 +68,7 @@ Full conventions and rules: [AGENTS.md](AGENTS.md).
 - **Long polling only**: no webhook deployment yet; not production-grade for high message rates.
 - **Auth & multi-tenant**: a single bot serves all locales identified by `chat_id`; no per-tenant isolation beyond that.
 - **vLLM nightly dependency**: Gemma 4 requires vLLM nightly (>= v0.20.x) because the stable v0.17.1 does not recognise the `gemma4` architecture. Alternatives: SGLang, HF Inference Providers.
-- **Bot runs locally**: not yet deployed to cloud — `containers/Containerfile.bot` is provided for future containerised deployment.
+- **Bot containerised on droplet**: deployed to the AMD GPU droplet via `scripts/deploy-bot.sh` (Docker 29.3.0). Run `bash scripts/deploy-bot.sh` from a local machine with `.env` populated; the script archives tracked files, SCPs the archive to the droplet, builds the image remotely, and starts/restarts the container.
 
 ## Repository Structure
 
