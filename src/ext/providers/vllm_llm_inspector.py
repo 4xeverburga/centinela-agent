@@ -13,9 +13,9 @@ from app.domain.entities import (
     InspectionStatus,
 )
 from app.domain.inspection_schema import InspectionPayload
+from app.domain.prompts import get_locale
 from app.ports.llm_inspector import LLMInspector
 from app.services.prompt import (
-    SYSTEM_PROMPT,
     build_chat_window_text,
     build_context_summary,
     build_user_prompt,
@@ -25,9 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 class VllmLLMInspector(LLMInspector):
-    def __init__(self, base_url: str, model: str, api_key: str):
+    def __init__(self, base_url: str, model: str, api_key: str, locale: str):
         self._model = model
         self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._locale = get_locale(locale)
 
     @staticmethod
     def _normalize_response(d: dict) -> dict:
@@ -83,10 +84,11 @@ class VllmLLMInspector(LLMInspector):
 
         context_summary = build_context_summary(
             [self._dict_to_stub(d) for d in recent_inspections_json]
-            if recent_inspections_json else []
+            if recent_inspections_json else [],
+            self._locale,
         )
-        chat_text = build_chat_window_text(chat_window)
-        user_prompt = build_user_prompt(chat_text, context_summary)
+        chat_text = build_chat_window_text(chat_window, self._locale)
+        user_prompt = build_user_prompt(chat_text, context_summary, self._locale)
 
         image_b64 = base64.b64encode(image.data).decode("utf-8")
 
@@ -106,7 +108,7 @@ class VllmLLMInspector(LLMInspector):
             })
 
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": self._locale.SYSTEM_PROMPT},
             {"role": "user", "content": content},
         ]
 

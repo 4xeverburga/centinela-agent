@@ -40,3 +40,6 @@ class PtbTelegramGateway(TelegramGateway):
         doc = BytesIO(file_bytes)
         doc.name = filename
         await self._bot.send_document(chat_id=int(chat_id), document=doc)
+
+    async def send_photo(self, chat_id: str, file_id: str, caption: str) -> None:
+        await self._bot.send_photo(chat_id=int(chat_id), photo=file_id, caption=caption)

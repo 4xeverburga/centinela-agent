@@ -12,3 +12,6 @@ class HumanReviewRepository(ABC):
 
     @abstractmethod
     async def answer(self, review_id: int, answer: str, reviewer_user_id: str, answered_at: str) -> None: ...
+
+    @abstractmethod
+    async def get_by_id(self, review_id: int) -> HumanReviewRequest | None: ...

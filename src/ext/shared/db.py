@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS chat_history (
     display_name TEXT NOT NULL,
     role TEXT NOT NULL,
     text TEXT NOT NULL,
+    file_id TEXT NOT NULL DEFAULT '',
     timestamp TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
@@ -82,6 +83,12 @@ CREATE TABLE IF NOT EXISTS human_reviews (
 
 CREATE TABLE IF NOT EXISTS admin_whitelist (
     telegram_user_id TEXT PRIMARY KEY,
+    added_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS assistants (
+    telegram_user_id TEXT PRIMARY KEY,
+    admin_user_id TEXT NOT NULL,
     added_at TEXT NOT NULL
 );
 """

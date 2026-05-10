@@ -119,6 +119,7 @@ class ChatMessage:
     role: UserRole
     text: str
     timestamp: datetime
+    file_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -160,13 +161,7 @@ class AdminWhitelistEntry:
 
 
 @dataclass(frozen=True)
-class HumanReviewRequest:
-    project_id: str
-    trigger: ReviewTrigger
-    question: str
-    asked_at: datetime
-    queue_id: int
-    answer: str
-    reviewer_user_id: str
-    answered_at: str
-    id: int = 0
+class AssistantEntry:
+    telegram_user_id: str
+    admin_user_id: str
+    added_at: datetime

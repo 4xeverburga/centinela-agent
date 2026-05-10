@@ -57,12 +57,31 @@ class SqliteInspectionRepository(InspectionRepository):
         rows = await cursor.fetchall()
         return [self._row_to_record(r) for r in rows]
 
+    async def update_validated_by_queue_id(self, queue_id: int, validated_by_admin: bool) -> None:
+        await self._conn.execute(
+            "UPDATE inspections SET validated_by_admin = ? WHERE queue_id = ?",
+            (int(validated_by_admin), queue_id),
+        )
+        await self._conn.commit()
+
     async def update_validated(self, record_id: int, validated_by_admin: bool) -> None:
         await self._conn.execute(
             "UPDATE inspections SET validated_by_admin = ? WHERE id = ?",
             (int(validated_by_admin), record_id),
         )
         await self._conn.commit()
+
+    async def get_pending_suspicious(
+        self, project_id: str, limit: int
+    ) -> list[InspectionRecord]:
+        cursor = await self._conn.execute(
+            """SELECT * FROM inspections
+               WHERE project_id = ? AND is_suspicious = 1 AND validated_by_admin = 0
+               ORDER BY created_at DESC LIMIT ?""",
+            (project_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [self._row_to_record(r) for r in rows]
 
     @staticmethod
     def _row_to_record(row: aiosqlite.Row) -> InspectionRecord:

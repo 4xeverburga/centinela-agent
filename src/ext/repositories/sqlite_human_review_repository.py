@@ -49,6 +49,13 @@ class SqliteHumanReviewRepository(HumanReviewRepository):
         )
         await self._conn.commit()
 
+    async def get_by_id(self, review_id: int) -> HumanReviewRequest | None:
+        cursor = await self._conn.execute(
+            "SELECT * FROM human_reviews WHERE id = ?", (review_id,)
+        )
+        row = await cursor.fetchone()
+        return self._row_to_review(row) if row else None
+
     @staticmethod
     def _row_to_review(row: aiosqlite.Row) -> HumanReviewRequest:
         return HumanReviewRequest(

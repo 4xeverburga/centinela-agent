@@ -1,4 +1,5 @@
 import logging
+from types import ModuleType
 
 from app.domain.entities import (
     HumanReviewRequest,
@@ -34,6 +35,7 @@ class ProcessQueueItemService:
         clustering_engine: ClusteringEngine,
         llm_inspector: LLMInspector,
         clock: Clock,
+        locale: ModuleType,
         sharpness_min: float,
         similarity_threshold: float,
         context_max_messages: int,
@@ -52,6 +54,7 @@ class ProcessQueueItemService:
         self._clustering_engine = clustering_engine
         self._llm_inspector = llm_inspector
         self._clock = clock
+        self._locale = locale
         self._sharpness_min = sharpness_min
         self._similarity_threshold = similarity_threshold
         self._context_max_messages = context_max_messages
@@ -101,7 +104,7 @@ class ProcessQueueItemService:
                 await self._review_repo.save(review)
                 await self._telegram.send_message(
                     item.chat_id,
-                    "⚠️ La foto enviada está borrosa. Por favor, vuelva a tomarla.",
+                    self._locale.BLURRY_IMAGE,
                 )
                 return False
 
@@ -154,13 +157,9 @@ class ProcessQueueItemService:
                     answered_at="",
                 )
                 await self._review_repo.save(review)
-                await self._telegram.send_inline_keyboard(
-                    project.chat_id,
-                    f"⚠️ Cambio de categoría detectado: {record.category}\n{record.anomaly_reason}",
-                    [[
-                        {"text": "✅ Confirmar", "callback_data": f"hitl_confirm_{review.id}"},
-                        {"text": "❌ Rechazar", "callback_data": f"hitl_reject_{review.id}"},
-                    ]],
+                logger.info(
+                    "Suspicious alert queued for project %s: %s",
+                    project.project_id, record.category,
                 )
 
             now_str = self._clock.now().isoformat()

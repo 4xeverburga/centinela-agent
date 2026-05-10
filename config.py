@@ -51,3 +51,9 @@ class Config(BaseSettings):
 
     # Admin whitelist (comma-separated Telegram user IDs)
     admin_telegram_user_ids: str = Field(alias="ADMIN_TELEGRAM_USER_IDS")
+
+    # Assistant whitelist (format: "assistant_id:admin_id,assistant_id:admin_id")
+    assistant_telegram_user_ids: str = Field(alias="ASSISTANT_TELEGRAM_USER_IDS")
+
+    # Locale ("es" or "en")
+    bot_locale: str = Field(alias="BOT_LOCALE")

@@ -1,4 +1,5 @@
 import logging
+from types import ModuleType
 
 from telegram import ChatMember, Update
 from telegram.error import BadRequest
@@ -13,6 +14,9 @@ from telegram.ext import (
 )
 
 from app.ports.admin_whitelist_repository import AdminWhitelistRepository
+from app.ports.assistant_repository import AssistantRepository
+from app.ports.inspection_repository import InspectionRepository
+from app.ports.project_repository import ProjectRepository
 from app.ports.telegram_gateway import TelegramGateway
 from app.services.start_project import StartProjectService
 from app.services.finish_project import FinishProjectService
@@ -34,7 +38,11 @@ class TelegramBotController:
         register_floorplan_svc: RegisterFloorplanService,
         hitl_svc: HandleHITLResponseService,
         admin_repo: AdminWhitelistRepository,
+        assistant_repo: AssistantRepository,
+        project_repo: ProjectRepository,
+        inspection_repo: InspectionRepository,
         telegram_gw: TelegramGateway,
+        locale: ModuleType,
     ):
         self._start_project = start_project_svc
         self._finish_project = finish_project_svc
@@ -43,26 +51,24 @@ class TelegramBotController:
         self._register_floorplan = register_floorplan_svc
         self._hitl = hitl_svc
         self._admin_repo = admin_repo
+        self._assistant_repo = assistant_repo
+        self._project_repo = project_repo
+        self._inspection_repo = inspection_repo
         self._telegram = telegram_gw
-
-    _ONBOARDING_TEXT = (
-        "\U0001f477 *Hola, soy Centinela* \u2014 tu asistente de inspecci\u00f3n de obra.\n\n"
-        "*Comandos disponibles:*\n"
-        "`/iniciar <nombre>` \u2014 Abre un nuevo proyecto de inspecci\u00f3n.\n"
-        "`/plano` \u2014 Registra el plano de referencia (responde a una foto).\n"
-        "`/finalizar` \u2014 Cierra el proyecto activo y genera el reporte.\n\n"
-        "Env\u00edame fotos de la obra y las registrar\u00e9 autom\u00e1ticamente. "
-        "Si tengo dudas, te pedir\u00e9 confirmaci\u00f3n antes de registrar una observaci\u00f3n."
-    )
+        self._locale = locale
 
     def _is_private(self, update: Update) -> bool:
         return update.effective_chat is not None and update.effective_chat.type == "private"
+
+    async def _is_admin_or_assistant(self, user_id: str) -> bool:
+        return await self._admin_repo.is_admin(user_id) or await self._assistant_repo.is_assistant(user_id)
 
     def register(self, app: Application) -> None:
         app.add_handler(CommandHandler("start", self._handle_onboarding))
         app.add_handler(CommandHandler("iniciar", self._handle_start))
         app.add_handler(CommandHandler("finalizar", self._handle_finish))
         app.add_handler(CommandHandler("plano", self._handle_plano))
+        app.add_handler(CommandHandler("alertas", self._handle_alertas))
         app.add_handler(MessageHandler(filters.PHOTO, self._handle_photo))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_text))
         app.add_handler(CallbackQueryHandler(self._handle_callback, pattern=r"^hitl_"))
@@ -71,7 +77,7 @@ class TelegramBotController:
     async def _handle_onboarding(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_message is None:
             return
-        await update.effective_message.reply_text(self._ONBOARDING_TEXT, parse_mode="Markdown")
+        await update.effective_message.reply_text(self._locale.ONBOARDING, parse_mode="Markdown")
 
     async def _handle_bot_added(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         member = update.my_chat_member
@@ -90,7 +96,7 @@ class TelegramBotController:
         if not was_member and is_member:
             await context.bot.send_message(
                 chat_id=member.chat.id,
-                text=self._ONBOARDING_TEXT,
+                text=self._locale.ONBOARDING,
                 parse_mode="Markdown",
             )
 
@@ -101,15 +107,11 @@ class TelegramBotController:
         user_id = str(update.effective_user.id)
 
         if self._is_private(update):
-            await update.effective_message.reply_text(
-                "El comando /iniciar solo puede usarse en un grupo."
-            )
+            await update.effective_message.reply_text(self._locale.START_GROUP_ONLY)
             return
 
         if not await self._admin_repo.is_admin(user_id):
-            await update.effective_message.reply_text(
-                "Solo un administrador autorizado puede iniciar un proyecto."
-            )
+            await update.effective_message.reply_text(self._locale.START_ADMIN_ONLY)
             return
 
         args = context.args or []
@@ -126,20 +128,13 @@ class TelegramBotController:
         try:
             await self._telegram.send_message(
                 user_id,
-                "\U0001f4cb Proyecto iniciado: " + local_name + "\n"
-                "ID: " + project.project_id + "\n\n"
-                "Env\u00edame el plano del local como foto o documento en este chat privado "
-                "y lo registrar\u00e9 autom\u00e1ticamente.\n\n"
-                "Tambi\u00e9n puedes enviarme instrucciones especiales para este proyecto.",
+                self._locale.START_DM_TEXT.format(name=local_name, project_id=project.project_id),
             )
         except Exception:
             logger.warning(
                 "Could not DM admin %s -- they need to /start the bot first", user_id
             )
-            await update.effective_message.reply_text(
-                "\u26a0\ufe0f No pude enviarte un mensaje privado. "
-                "Aseg\u00farate de iniciar el bot con /start antes de usar /iniciar."
-            )
+            await update.effective_message.reply_text(self._locale.START_DM_FAILED)
 
     async def _handle_finish(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_message is None or update.effective_user is None:
@@ -147,9 +142,7 @@ class TelegramBotController:
 
         user_id = str(update.effective_user.id)
         if not await self._admin_repo.is_admin(user_id):
-            await update.effective_message.reply_text(
-                "Solo un administrador autorizado puede finalizar un proyecto."
-            )
+            await update.effective_message.reply_text(self._locale.FINISH_ADMIN_ONLY)
             return
 
         chat_id = str(update.effective_chat.id)
@@ -164,9 +157,7 @@ class TelegramBotController:
 
         user_id = str(update.effective_user.id)
         if not await self._admin_repo.is_admin(user_id):
-            await update.effective_message.reply_text(
-                "Solo un administrador puede registrar el plano."
-            )
+            await update.effective_message.reply_text(self._locale.PLANO_ADMIN_ONLY)
             return
 
         msg = update.effective_message
@@ -181,12 +172,12 @@ class TelegramBotController:
         elif msg.reply_to_message and msg.reply_to_message.document:
             file_id = msg.reply_to_message.document.file_id
         else:
-            await msg.reply_text("Responda a una foto o env\u00ede /plano con una imagen adjunta.")
+            await msg.reply_text(self._locale.PLANO_NO_IMAGE)
             return
 
         ok = await self._register_floorplan.execute(chat_id, file_id)
         if not ok:
-            await msg.reply_text("No hay proyecto activo en este grupo.")
+            await msg.reply_text(self._locale.PLANO_NO_PROJECT)
 
     async def _handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_message is None or not update.effective_message.photo:
@@ -201,8 +192,10 @@ class TelegramBotController:
             return
 
         chat_id = str(update.effective_chat.id)
+        user_id = str(update.effective_user.id) if update.effective_user else ""
+        display = update.effective_user.full_name if update.effective_user else ""
         file_id = update.effective_message.photo[-1].file_id
-        await self._ingest_photo.execute(chat_id, file_id)
+        await self._ingest_photo.execute(chat_id, file_id, user_id, display)
 
     async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_message is None or update.effective_user is None:
@@ -238,9 +231,65 @@ class TelegramBotController:
         answer = "confirmed" if action == "confirm" else "rejected"
         await self._hitl.execute(review_id, answer, reviewer_id)
         try:
-            await query.edit_message_text("Revisión " + str(review_id) + ": " + answer)
+            await query.edit_message_text(
+                self._locale.HITL_REVIEW.format(review_id=review_id, answer=answer)
+            )
         except BadRequest as e:
             if "not modified" in str(e).lower():
                 pass  # duplicate button press, already updated
             else:
                 raise
+
+    async def _handle_alertas(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if update.effective_message is None or update.effective_user is None:
+            return
+
+        user_id = str(update.effective_user.id)
+        is_admin = await self._admin_repo.is_admin(user_id)
+        is_assistant = await self._assistant_repo.is_assistant(user_id)
+
+        if not is_admin and not is_assistant:
+            await update.effective_message.reply_text(self._locale.ALERTS_UNAUTHORIZED)
+            return
+
+        chat_id = str(update.effective_chat.id)
+        from app.domain.entities import ProjectStatus
+        project = await self._project_repo.get_active_by_chat(chat_id)
+        if project is None:
+            await update.effective_message.reply_text(self._locale.ALERTS_NO_PROJECT)
+            return
+
+        if is_assistant and not is_admin:
+            admin_ids = await self._assistant_repo.get_admin_ids_for_assistant(user_id)
+            if project.admin_user_id not in admin_ids:
+                await update.effective_message.reply_text(self._locale.ALERTS_UNAUTHORIZED)
+                return
+
+        alerts = await self._inspection_repo.get_pending_suspicious(project.project_id, 5)
+        if not alerts:
+            await update.effective_message.reply_text(self._locale.ALERTS_EMPTY)
+            return
+
+        total = len(alerts)
+        await update.effective_message.reply_text(
+            self._locale.ALERTS_HEADER.format(count=total), parse_mode="Markdown"
+        )
+
+        for idx, alert in enumerate(alerts, 1):
+            caption = self._locale.ALERT_CAPTION.format(
+                idx=idx,
+                category=alert.category,
+                reason=alert.anomaly_reason or "-",
+                location=alert.location_on_map or "-",
+            )
+            await self._telegram.send_photo(
+                chat_id, alert.image_file_id, caption
+            )
+            await self._telegram.send_inline_keyboard(
+                chat_id,
+                self._locale.HITL_REVIEW.format(review_id=alert.id, answer="?"),
+                [[
+                    {"text": "\u2705 Confirmar", "callback_data": f"hitl_confirm_{alert.id}"},
+                    {"text": "\u274c Rechazar", "callback_data": f"hitl_reject_{alert.id}"},
+                ]],
+            )

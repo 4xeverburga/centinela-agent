@@ -13,14 +13,15 @@ class SqliteHistoryRepository(HistoryRepository):
     async def save(self, project_id: str, message: ChatMessage) -> None:
         await self._conn.execute(
             """INSERT INTO chat_history
-               (project_id, telegram_user_id, display_name, role, text, timestamp)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+               (project_id, telegram_user_id, display_name, role, text, file_id, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 project_id,
                 message.telegram_user_id,
                 message.display_name,
                 message.role.value,
                 message.text,
+                message.file_id,
                 message.timestamp.isoformat(),
             ),
         )
@@ -63,4 +64,5 @@ class SqliteHistoryRepository(HistoryRepository):
             role=UserRole(row["role"]),
             text=row["text"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
+            file_id=row["file_id"],
         )

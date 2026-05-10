@@ -39,12 +39,27 @@ async def run() -> None:
     from ext.repositories.sqlite_admin_whitelist_repository import SqliteAdminWhitelistRepository
     admin_repo = SqliteAdminWhitelistRepository(conn)
 
+    from ext.repositories.sqlite_assistant_repository import SqliteAssistantRepository
+    assistant_repo = SqliteAssistantRepository(conn)
+
     from ext.providers.system_clock import SystemClock, UuidIdGenerator
     clock = SystemClock()
     id_gen = UuidIdGenerator()
 
     admin_ids = [uid.strip() for uid in cfg.admin_telegram_user_ids.split(",") if uid.strip()]
     await admin_repo.seed(admin_ids, clock.now().isoformat())
+
+    assistant_entries = []
+    for entry in cfg.assistant_telegram_user_ids.split(","):
+        entry = entry.strip()
+        if ":" in entry:
+            parts = entry.split(":", 1)
+            assistant_entries.append((parts[0].strip(), parts[1].strip()))
+    if assistant_entries:
+        await assistant_repo.seed(assistant_entries, clock.now().isoformat())
+
+    from app.domain.prompts import get_locale
+    locale = get_locale(cfg.bot_locale)
 
     from ext.providers.pillow_image_processor import PillowImageProcessor
     image_processor = PillowImageProcessor(
@@ -63,6 +78,7 @@ async def run() -> None:
         base_url=cfg.vllm_base_url,
         model=cfg.vllm_model,
         api_key="EMPTY",
+        locale=cfg.bot_locale,
     )
 
     from ext.providers.vllm_report_generator import VllmReportGenerator
@@ -89,7 +105,7 @@ async def run() -> None:
     finish_svc = FinishProjectService(
         project_repo, inspection_repo, history_repo, review_repo, report_gen, telegram_gw, clock
     )
-    ingest_photo_svc = IngestPhotoService(project_repo, queue_repo, clock)
+    ingest_photo_svc = IngestPhotoService(project_repo, queue_repo, history_repo, user_repo, clock)
     ingest_msg_svc = IngestMessageService(project_repo, history_repo, user_repo, clock)
     register_fp_svc = RegisterFloorplanService(project_repo, telegram_gw)
     hitl_svc = HandleHITLResponseService(review_repo, inspection_repo, clock)
@@ -106,6 +122,7 @@ async def run() -> None:
         clustering_engine=clustering_engine,
         llm_inspector=llm_inspector,
         clock=clock,
+        locale=locale,
         sharpness_min=cfg.image_sharpness_min,
         similarity_threshold=cfg.image_similarity_threshold,
         context_max_messages=cfg.hitl_context_max_messages,
@@ -126,7 +143,7 @@ async def run() -> None:
     from telegram.ext import ApplicationBuilder
     controller = TelegramBotController(
         start_svc, finish_svc, ingest_photo_svc, ingest_msg_svc, register_fp_svc, hitl_svc,
-        admin_repo, telegram_gw,
+        admin_repo, assistant_repo, project_repo, inspection_repo, telegram_gw, locale,
     )
 
     app = ApplicationBuilder().token(cfg.bot_http_api_token).build()

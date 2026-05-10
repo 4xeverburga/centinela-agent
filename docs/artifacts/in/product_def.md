@@ -224,18 +224,30 @@ Lista de usuarios autorizados como administradores del bot. Solo los usuarios en
 * `telegram_user_id`: TEXT PRIMARY KEY
 * `added_at`: DATETIME
 
+### 8. Tabla: `Assistants`
+
+Lista de asistentes autorizados para revisar alertas de proyectos creados por sus admins asociados. Un asistente puede estar vinculado a uno o más administradores. El registro inicial se realiza mediante la variable de entorno `ASSISTANT_TELEGRAM_USER_IDS` (formato: `assistant_id:admin_id,assistant_id:admin_id`). Se persiste en SQLite para gestión dinámica.
+
+* `telegram_user_id`: TEXT PRIMARY KEY
+* `admin_user_id`: TEXT NOT NULL
+* `added_at`: DATETIME
+
 **Reglas de acceso:**
 
 * `/iniciar` solo se permite en chats grupales y solo por un admin registrado.
+* `/finalizar` solo por un admin registrado.
+* `/plano` solo por un admin registrado.
+* `/alertas` permitido para admins y asistentes. Un asistente solo puede ver alertas de proyectos creados por su admin asociado.
 * Mensajes en chat privado (1-a-1) son ignorados si el remitente no es admin.
 * Cuando un admin ejecuta `/iniciar <nombre>` en un grupo, el bot le envía un mensaje privado solicitando información complementaria del proyecto (plano del local, instrucciones especiales).
+* Las alertas de categoría sospechosa **no se envían automáticamente al grupo**. En su lugar, un admin o asistente puede ejecutar `/alertas` para ver las últimas 5 alertas pendientes con fotos y botones de confirmación/rechazo.
 
 ---
 
 ## 🛡️ Manejo de Errores y Resiliencia
 
 * **Errores transitorios (descarga desde CDN de Telegram, timeout de red, 5xx del backend de inferencia):** reintento con backoff exponencial; tras N intentos fallidos el item pasa a `status=FAILED`.
-* **JSON inválido o no conforme al schema:** se previene en origen usando el **guided decoding nativo de vLLM** (`guided_json` con JSON Schema), invocado a través del cliente OpenAI-compatible expuesto por vLLM. La integración en Python se hace con `langchain-openai` (`ChatOpenAI(base_url=...)`) pasando el schema vía `extra_body={"guided_json": <schema>}`. Como fallback, un segundo paso pide al modelo corregir su salida; si vuelve a fallar, el item entra a `HumanReview` con `trigger=INVALID_JSON`.
+* **JSON inválido o no conforme al schema:** dado que `guided_json` de vLLM no se aplica en modelos multimodales (vision+text), el esquema se inyecta directamente en el prompt del usuario con instrucciones estrictas de campo. Un paso de normalización (`_normalize_response`) mapea alias comunes que el modelo puede usar (ej: `equipment_type` → `category`, `location` → `location_ref`, `ocr.text_detected` → `ocr`). Si la validación Pydantic falla tras normalización, el item se marca como `PARSE_ERROR` con `is_suspicious=True`.
 * **Idempotencia:** `UNIQUE(project_id, file_id)` evita procesar dos veces el mismo update reentregado por Telegram.
 * **Imágenes descartadas:** los miembros no representantes del cluster se conservan **solo como referencia** (`file_id` + `is_representative=false`); el binario nunca se persiste en el servidor.
 * **Cierre por timeout:** si el admin no ejecuta `/finalizar_proyecto` tras un periodo configurable de inactividad, el proyecto pasa a `AUTO_CLOSED` y se genera el informe con lo disponible, marcando esta condición en `closure_reason`.
@@ -253,8 +265,9 @@ Los planos de locales (Cencosud, Metro) y las fotos de instalaciones de segurida
 * **Python**: 3.13.0 gestionado con **pyenv** + **venv** para pruebas locales.
 * **Dependencias**: declaradas en `requirements.txt` (sin `pyproject.toml` para el MVP). Pinneado por versión exacta.
 * **Inferencia LLM**: vLLM (ya instalado en la instancia AMD) sirviendo **`google/gemma-4-31B-it`** vía API OpenAI-compatible.
-* **Cliente LLM**: `langchain-openai` apuntando al endpoint vLLM, con `guided_json` para garantizar JSON conforme al schema.
-* **Telegram**: librería de bot asíncrona (ej. `python-telegram-bot` o `aiogram`).
+* **Cliente LLM**: `openai` (AsyncOpenAI) apuntando al endpoint vLLM, sin `guided_json` para modelos multimodales.
+* **Internacionalización (i18n)**: todos los prompts del LLM y strings de la UI del bot están modularizados en `src/app/domain/prompts/` con un archivo por locale (`es.py`, `en.py`). El locale activo se configura con la variable de entorno `BOT_LOCALE` (`es` o `en`).
+* **Telegram**: librería `python-telegram-bot` (async).
 * **Procesamiento de imagen**: Pillow + OpenCV (varianza del Laplaciano) + un backend ligero de embeddings (CLIP pequeño, MobileNet o `imagehash`).
 * **Persistencia**: SQLite vía `sqlite3` o un thin wrapper (sin ORM pesado para el MVP).
 * **Configuración**: todas las claves, hosts, umbrales y parámetros se cargan desde `.env` (vía `python-dotenv`) y se exponen mediante un módulo `config.py` en la raíz del proyecto. **No hay valores por defecto** en firmas de funciones/clases; los parámetros se inyectan explícitamente desde `config.py`.
