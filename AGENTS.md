@@ -2,17 +2,26 @@
 
 ## Project Context
 
-- **Project**: {NOMBRE_DEL_PROYECTO}
-- **Phase**: {Development | Released}
+- **Project**: Centinela
+- **Phase**: Development
 - **Description**: {Descripción breve del proyecto.}
 
 ## Team Ownership
 
-| Role | Name |
-|---|---|
-| **Team Role** | {Owner1} |
+| Role | Name | GithubHandle |
+|---|---|---|
+| Lead Developer and Product Owner | Ever Burga | `4xeverburga` |
 
 > ⚠️ **Note on Secondary Owners**: Adding a Secondary Owner (`{Owner2}`) to this table is **not recommended** and should be avoided whenever possible. It should only be considered in exceptional cases such as extended vacations or medical leave, and only after explicit confirmation from the user. Under normal circumstances, the Primary Owner is the single accountable person for the scope of his role and decisions.
+
+### Identifying the Current Developer
+
+Before updating `docs/status.md` (especially the owner brackets `**[{Owner}]**`) or modifying the **Team Ownership** table, agents must resolve who is currently authoring the changes:
+
+1. Run `git config user.name` to obtain the active git identity.
+2. Match the resulting handle against the `GithubHandle` column above to map it to the real `Name`.
+3. If no row matches, **ask the user** for their real name and GitHub handle, then add a new row to the table before assigning ownership of any task.
+4. Use the resolved real `Name` (not the GitHub handle) inside `**[Name]**` brackets in `docs/status.md`.
 
 ## Documentation Rules
 
@@ -85,3 +94,40 @@ Artifact filenames should be descriptive enough to explain the format and purpos
 - When creating new documentation, follow the existing format and structure.
 - Do not remove historical entries from the logbook; only append.
 - Commit messages for documentation changes must use the prefix `docs:`.
+
+## Architecture
+
+The codebase follows **Hexagonal Architecture (Ports & Adapters)**. The root code package lives under `src/` and is split into two top-level layers:
+
+```
+src/
+├── app/                      # Application core (pure, framework-agnostic)
+│   ├── domain/               # Entities, value objects, domain rules
+│   ├── ports/                # Interfaces (driven & driving ports)
+│   └── services/             # Use cases / application services
+└── ext/                      # Adapters / external concerns
+    ├── repositories/         # Persistence adapters (SQLite, etc.)
+    ├── providers/            # Outbound adapters (Telegram, vLLM, etc.)
+    ├── controllers/          # Inbound adapters (bot handlers, HTTP, CLI)
+    └── shared/               # Cross-cutting infra (db conn, http client)
+
+containers/                   # Container images deployed to the AMD GPU droplet (Containerfile.bot, etc.)
+scripts/                      # Shell helpers (start/stop/check vLLM on droplet)
+```
+
+Rules:
+- `app/` must not import from `ext/`. Dependency direction is always `ext/ → app/`.
+- Interfaces/ports are defined in `app/ports/`; concrete repositories and providers implementing them live in `ext/`.
+- Wiring (DI/composition root) lives outside `app/`, typically in an entrypoint module that imports from `ext/` and `config.py`.
+- Vertical feature slicing is **not** adopted at this stage. If the codebase grows enough to justify it, the structure can later evolve into `src/{app,ext}/<feature>/...` without changing the dependency rules above.
+
+## Python Conventions
+
+- **Python version**: 3.13.0, managed with `pyenv` + `venv` for local development.
+- **Dependencies**: declared in `requirements.txt` at repo root, pinned by exact version.
+- **Style**: PEP 8. Format with `black` and lint with `ruff` when available.
+- **No file-level docstrings**: do not add a docstring at the top of `.py` files. They harm readability for this project. Use docstrings only for non-trivial public functions/classes when they add real value.
+- **No default values** in function/method/class parameter signatures. All configuration is injected explicitly by the caller, ultimately sourced from `.env` via the `config.py` module at the repo root. This keeps the composition root as the single source of truth and avoids hidden defaults scattered across the codebase.
+- **Avoid `Optional` / `None` fields**: prefer explicit, non-nullable types. Only use `| None` when the domain genuinely requires the absence of a value (e.g., a field that is populated later in a lifecycle). Do not use `Optional` as a convenience to skip initialization.
+- `config.py` loads `.env` (via `python-dotenv`) and exposes a typed configuration object that is passed down through constructors.
+- Secrets and tokens must never be hardcoded; always read from `.env`.
