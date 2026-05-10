@@ -86,9 +86,8 @@ def main() -> None:
         loop=loop,
     )
 
-    port = int(os.environ.get("DEMO_PORT", "5000"))
-    logger.info("Starting demo API on port %d (db: %s)", port, demo_db_path)
-    demo_app.run(host="0.0.0.0", port=port)
+    logger.info("Starting demo API on %s:%d (db: %s)", cfg.demo_host, cfg.demo_port, demo_db_path)
+    demo_app.run(host=cfg.demo_host, port=cfg.demo_port)
 
 
 if __name__ == "__main__":

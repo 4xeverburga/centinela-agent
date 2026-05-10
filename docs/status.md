@@ -38,13 +38,16 @@
 - [x] **[Ever Burga]** Context window anchored by `ChatMessage` with `message_id` ordering and per-side limits.
 - [x] **[Ever Burga]** Media group caption inheritance — later photos in a group inherit the caption from the first. See `docs/logbooks/2026-05-10.md` entry 2.
 - [x] **[Ever Burga]** Removed `is_representative` from queue — non-representative images stay in `chat_history` only.
+- [x] **[Ever Burga]** Bot deployed to AMD GPU droplet via `scripts/deploy-bot.sh`. `sentence-transformers` removed (pHash used instead). See `docs/logbooks/2026-05-10.md`.
+- [x] **[Ever Burga]** `deploy-bot.sh` updated: deploys `centinela-demo` container (Flask API on `DEMO_PORT`), opens UFW port, prints demo URL. Dev→prod transition strategy documented. See `docs/logbooks/2026-05-10.md`.
+- [x] **[Ever Burga]** `/iniciar` group reply now suggests `/plano` instead of printing project ID. `START_DM_TEXT` also updated (both locales). See `docs/logbooks/2026-05-10.md`.
 
 ## Pending
 
-- [x] **[Ever Burga]** Deployed bot container to AMD GPU droplet via `scripts/deploy-bot.sh` (Docker 29.3.0). `sentence-transformers` removed from requirements — was never used (deduplication uses pHash via `imagehash`).
 - [ ] **[Ever Burga]** Integration tests (SQLite repos, vLLM inspector with live model)
 - [ ] **[Ever Burga]** Auto-close stale projects after PROJECT_AUTO_CLOSE_HOURS
 - [ ] **[Ever Burga]** CLIP-based image embedder adapter — currently using pHash (`imagehash`); CLIP would improve semantic similarity but requires `sentence-transformers` + `torch` (~1 GB) back as dependencies
+- [ ] **[Ever Burga]** Disable /plano, /alertas, /start, /hola commands in group chats (group-only: /iniciar, /finalizar)
 
 ## Risks / Blockers
 
@@ -53,10 +56,32 @@
 - Gemma 4 requires vLLM **nightly** (>= v0.20.x); stable v0.17.1 does not support the `gemma4` architecture. Alternatives identified: SGLang, HF Inference Providers, llama.cpp GGUF.
 - Bot currently runs locally — needs cloud deployment for production use.
 
+## Dev → Production Transition Strategy
+
+**Problem**: avoiding conflicting file versions between dev and prod when both run on the same droplet (or any shared host).
+
+**Decided approach — image tagging + env-file separation:**
+
+1. **Single image, multiple environments**: `deploy-bot.sh` always builds from the current `HEAD` (via `git archive`). Before a prod deploy the commit is tagged (`git tag v1.x.x && git push --tags`). The remote image is tagged identically (`docker tag centinela-bot centinela-bot:v1.x.x`).
+2. **No code duplication on the host**: only one image build at a time. Containers (`centinela-bot`, `centinela-demo`) are always recreated from that image. There is no "dev clone" and "prod clone" co-existing on the droplet — dev testing happens locally.
+3. **Env-file separation**: secrets and runtime config live in `~/centinela.env` (prod) on the droplet, never in the repo. A local `.env` is used for local dev. If a staging environment is ever needed, it gets its own droplet with its own `~/centinela.env`, not a second env file on the same host.
+4. **Data isolation**: the SQLite volume (`~/centinela-data/`) is prod data. The demo server uses a separate `centinela_demo.db` inside the same volume. Never share a DB file between prod bot and dev experiments.
+5. **Rollback**: to roll back, re-run `deploy-bot.sh` from a previous tagged commit (`git checkout v1.x.x` → `deploy-bot.sh`). The `--restart=unless-stopped` policy keeps containers alive across reboots automatically.
+
+**Ports in use on the droplet:**
+
+| Port | Service | Notes |
+|------|---------|-------|
+| 22 | SSH | always open |
+| 8000 | vLLM OpenAI-compat API | internal; open only to bot container |
+| 5000 | centinela-demo Flask API | opened by `deploy-bot.sh` via `ufw allow` |
+
+> ⚠️ Port 8000 (vLLM) should **not** be exposed to the public internet. If the droplet firewall (DigitalOcean Cloud Firewall) is configured, ensure 8000 is blocked externally. The bot container reaches vLLM via `VLLM_BASE_URL=http://localhost:8000/v1` on the host network.
+
 ## TBD / Open Questions
 
 - **`TelegramGateway` in `app/ports/`**: Telegram is a 3rd-party concern and arguably should not leak into the application core as a named port. Options: (a) rename to a generic `MessagingGateway` / `NotificationGateway` with Telegram as one adapter, (b) move download/send responsibilities to separate `FileDownloader` and `Notifier` ports so the core stays transport-agnostic. No decision yet — revisit before adding a second channel.
 
 ## Next Milestone
 
-**Milestone**: Deploy bot container to the cloud so the system runs fully headless (vLLM on droplet + bot in a managed container service).
+**Milestone**: Demo API live on droplet and accessible from browser; bot fully headless (vLLM + bot + demo all running on droplet, surviving reboots).
