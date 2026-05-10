@@ -54,6 +54,6 @@ class StartProjectService:
         await self._project_repo.save(project)
         await self._telegram.send_message(
             chat_id,
-            f"Proyecto '{local_name}' iniciado. ID: {project.project_id}",
+            f"\u2705 Proyecto '{local_name}' iniciado.\n\nUsa /plano para registrar el plano de referencia.",
         )
         return project

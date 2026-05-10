@@ -54,8 +54,7 @@ ONBOARDING = (
 START_GROUP_ONLY = "El comando /iniciar solo puede usarse en un grupo."
 START_ADMIN_ONLY = "Solo un administrador autorizado puede iniciar un proyecto."
 START_DM_TEXT = (
-    "\U0001f4cb Proyecto iniciado: {name}\n"
-    "ID: {project_id}\n\n"
+    "\U0001f4cb Proyecto iniciado: *{name}*\n\n"
     "Envíame el plano del local como foto o documento en este chat privado "
     "y lo registraré automáticamente.\n\n"
     "También puedes enviarme instrucciones especiales para este proyecto."
