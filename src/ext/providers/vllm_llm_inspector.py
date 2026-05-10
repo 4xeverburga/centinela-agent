@@ -80,7 +80,10 @@ class VllmLLMInspector(LLMInspector):
     ) -> InspectionRecord:
         from app.domain.entities import InspectionRecord as IR
 
-        context = build_chronological_context(chat_window, inspections_by_file_id, self._locale)
+        context = build_chronological_context(
+            chat_window, inspections_by_file_id, self._locale,
+            current_file_id=image_file_id,
+        )
         user_prompt = build_user_prompt(context, self._locale)
 
         image_b64 = base64.b64encode(image.data).decode("utf-8")

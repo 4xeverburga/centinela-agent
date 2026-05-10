@@ -15,25 +15,19 @@ class FakeHistoryRepository(HistoryRepository):
         self,
         project_id: str,
         anchor: datetime,
-        max_before: int,
-        max_after: int,
+        max_messages: int,
         before_minutes: int,
         after_minutes: int,
     ) -> list[ChatMessage]:
         before_cutoff = anchor - timedelta(minutes=before_minutes)
         after_cutoff = anchor + timedelta(minutes=after_minutes)
-        before: list[ChatMessage] = []
-        after: list[ChatMessage] = []
-        for pid, msg in self._store:
-            if pid != project_id:
-                continue
-            if before_cutoff <= msg.timestamp < anchor:
-                before.append(msg)
-            elif anchor < msg.timestamp <= after_cutoff:
-                after.append(msg)
-        before.sort(key=lambda m: m.timestamp)
-        after.sort(key=lambda m: m.timestamp)
-        return before[-max_before:] + after[:max_after]
+        matches = [
+            msg for pid, msg in self._store
+            if pid == project_id
+            and before_cutoff <= msg.timestamp <= after_cutoff
+        ]
+        matches.sort(key=lambda m: m.timestamp)
+        return matches[:max_messages]
 
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]:
         return [msg for pid, msg in self._store if pid == project_id]

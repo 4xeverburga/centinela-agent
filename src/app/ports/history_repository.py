@@ -13,8 +13,7 @@ class HistoryRepository(ABC):
         self,
         project_id: str,
         anchor: datetime,
-        max_before: int,
-        max_after: int,
+        max_messages: int,
         before_minutes: int,
         after_minutes: int,
     ) -> list[ChatMessage]: ...
