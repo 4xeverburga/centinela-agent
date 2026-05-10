@@ -85,11 +85,16 @@ def create_demo_app(
     @app.route("/demo/db", methods=["PUT"])
     @auth
     def upload_db():
-        if "file" not in request.files:
-            return jsonify({"error": "multipart field 'file' required"}), 400
-        f = request.files["file"]
+        body = request.get_json(force=True)
+        if not body or "db_base64" not in body:
+            return jsonify({"error": "body must be JSON with a 'db_base64' field"}), 400
+        try:
+            data = base64.b64decode(body["db_base64"])
+        except Exception:
+            return jsonify({"error": "db_base64 is not valid base64"}), 400
         tmp_path = demo_sqlite_path + ".upload"
-        f.save(tmp_path)
+        with open(tmp_path, "wb") as f:
+            f.write(data)
         shutil.move(tmp_path, demo_sqlite_path)
         _run(_connect())
         return jsonify({"status": "ok"})
