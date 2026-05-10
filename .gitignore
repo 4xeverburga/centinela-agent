@@ -19,7 +19,6 @@ __pycache__/
 venv/
 env/
 ENV/
-.python-version
 
 # Distribution / packaging
 build/
@@ -72,6 +71,10 @@ Thumbs.db
 
 # --- Project-specific ---
 docs/artifacts/out/**/*.tmp
+
+# Container image tarballs
+*.tar
+*.tar.gz
 
 # SQLite WAL files
 *.db-shm
