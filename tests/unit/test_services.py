@@ -80,7 +80,7 @@ async def test_ingest_photo_queues_item():
         project_repo, queue_repo, history_repo, user_repo,
         telegram, image_processor, clock, 50.0, "may2026:0.1",
     )
-    result = await svc.execute("123", "file-abc", "u2", "Tech Juan", "camera maintenance", "")
+    result = await svc.execute("123", "file-abc", "u2", "Tech Juan", "camera maintenance", "", 42)
 
     assert result == IngestResult.QUEUED
     item = await queue_repo.get_by_key("file-abc", "may2026:0.1")
@@ -116,7 +116,7 @@ async def test_ingest_message_saves_to_history():
     await project_repo.save(project)
 
     svc = IngestMessageService(project_repo, history_repo, user_repo, clock)
-    result = await svc.execute("123", "u2", "Tech Juan", "Cámara IP reemplazada")
+    result = await svc.execute("123", "u2", "Tech Juan", "Cámara IP reemplazada", 99)
 
     assert result is True
     messages = await history_repo.get_all_for_project("p1")

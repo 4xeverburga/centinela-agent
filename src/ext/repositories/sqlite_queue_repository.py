@@ -13,13 +13,13 @@ class SqliteQueueRepository(QueueRepository):
     async def save(self, item: QueueItem) -> None:
         await self._conn.execute(
             """INSERT INTO inspections_queue
-               (file_id, system_version, project_id, chat_id, cluster_id,
+               (file_id, system_version, project_id, chat_id, message_id, cluster_id,
                 is_representative, status, attempts, received_at, last_error,
                 worker_id, processed_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 item.file_id, item.system_version, item.project_id, item.chat_id,
-                item.cluster_id, int(item.is_representative), item.status.value,
+                item.message_id, item.cluster_id, int(item.is_representative), item.status.value,
                 item.attempts, item.received_at.isoformat(), item.last_error,
                 item.worker_id, item.processed_at,
             ),
@@ -89,6 +89,7 @@ class SqliteQueueRepository(QueueRepository):
         return QueueItem(
             project_id=row["project_id"], file_id=row["file_id"],
             chat_id=row["chat_id"], system_version=row["system_version"],
+            message_id=row["message_id"],
             cluster_id=row["cluster_id"],
             is_representative=bool(row["is_representative"]),
             status=QueueStatus(row["status"]),

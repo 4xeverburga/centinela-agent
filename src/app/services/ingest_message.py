@@ -24,6 +24,7 @@ class IngestMessageService:
         telegram_user_id: str,
         display_name: str,
         text: str,
+        message_id: int,
     ) -> bool:
         project = await self._project_repo.get_active_by_chat(chat_id)
         if project is None:
@@ -37,6 +38,8 @@ class IngestMessageService:
         )
 
         message = ChatMessage(
+            chat_id=chat_id,
+            message_id=message_id,
             telegram_user_id=telegram_user_id,
             display_name=display_name,
             role=role,

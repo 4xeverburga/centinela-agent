@@ -202,7 +202,8 @@ class TelegramBotController:
         file_id = update.effective_message.photo[-1].file_id
         caption = update.effective_message.caption or ""
         cluster_id = update.effective_message.media_group_id or ""
-        result = await self._ingest_photo.execute(chat_id, file_id, user_id, display, caption, cluster_id)
+        msg_id = update.effective_message.message_id
+        result = await self._ingest_photo.execute(chat_id, file_id, user_id, display, caption, cluster_id, msg_id)
         if result == IngestResult.REJECTED_BLURRY:
             await self._telegram.send_message(chat_id, self._locale.BLURRY_IMAGE)
 
@@ -220,7 +221,8 @@ class TelegramBotController:
         user_id = str(update.effective_user.id)
         display = update.effective_user.full_name or user_id
         text = update.effective_message.text or ""
-        await self._ingest_message.execute(chat_id, user_id, display, text)
+        msg_id = update.effective_message.message_id
+        await self._ingest_message.execute(chat_id, user_id, display, text, msg_id)
 
     async def _handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query

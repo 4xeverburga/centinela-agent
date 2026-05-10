@@ -11,32 +11,34 @@ class FakeHistoryRepository(HistoryRepository):
     async def save(self, project_id: str, message: ChatMessage) -> None:
         self._store.append((project_id, message))
 
+    async def get_by_message_id(self, project_id: str, message_id: int) -> ChatMessage | None:
+        for pid, msg in self._store:
+            if pid == project_id and msg.message_id == message_id:
+                return msg
+        return None
+
     async def get_context_around(
         self,
         project_id: str,
-        anchor: datetime,
+        anchor: ChatMessage,
         max_messages: int,
         before_minutes: int,
         after_minutes: int,
     ) -> list[ChatMessage]:
-        before_cutoff = anchor - timedelta(minutes=before_minutes)
-        after_cutoff = anchor + timedelta(minutes=after_minutes)
+        before_cutoff = anchor.timestamp - timedelta(minutes=before_minutes)
+        after_cutoff = anchor.timestamp + timedelta(minutes=after_minutes)
         before: list[ChatMessage] = []
-        at_anchor: list[ChatMessage] = []
         after: list[ChatMessage] = []
         for pid, msg in self._store:
             if pid != project_id:
                 continue
-            if before_cutoff <= msg.timestamp < anchor:
+            if before_cutoff <= msg.timestamp and msg.message_id < anchor.message_id:
                 before.append(msg)
-            elif msg.timestamp == anchor:
-                at_anchor.append(msg)
-            elif anchor < msg.timestamp <= after_cutoff:
+            elif msg.timestamp <= after_cutoff and msg.message_id > anchor.message_id:
                 after.append(msg)
-        before.sort(key=lambda m: m.timestamp)
-        at_anchor.sort(key=lambda m: m.timestamp)
-        after.sort(key=lambda m: m.timestamp)
-        return before[-max_messages:] + at_anchor + after[:max_messages]
+        before.sort(key=lambda m: m.message_id)
+        after.sort(key=lambda m: m.message_id)
+        return before[-max_messages:] + [anchor] + after[:max_messages]
 
     async def get_all_for_project(self, project_id: str) -> list[ChatMessage]:
         return [msg for pid, msg in self._store if pid == project_id]

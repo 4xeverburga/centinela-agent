@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 from app.domain.entities import ChatMessage
 
@@ -9,10 +8,13 @@ class HistoryRepository(ABC):
     async def save(self, project_id: str, message: ChatMessage) -> None: ...
 
     @abstractmethod
+    async def get_by_message_id(self, project_id: str, message_id: int) -> ChatMessage | None: ...
+
+    @abstractmethod
     async def get_context_around(
         self,
         project_id: str,
-        anchor: datetime,
+        anchor: ChatMessage,
         max_messages: int,
         before_minutes: int,
         after_minutes: int,

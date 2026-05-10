@@ -83,9 +83,19 @@ class ProcessQueueItemService:
             if project.floor_plan_file_id:
                 floor_plan_bytes = await self._telegram.download_file(project.floor_plan_file_id)
 
+            anchor_msg = await self._history_repo.get_by_message_id(
+                project.project_id, item.message_id,
+            )
+            if anchor_msg is None:
+                await self._queue_repo.update_status(
+                    file_id, system_version, QueueStatus.FAILED,
+                    item.attempts + 1, "anchor message not found", "worker-0"
+                )
+                return False
+
             chat_messages = await self._history_repo.get_context_around(
                 project.project_id,
-                item.received_at,
+                anchor_msg,
                 self._context_max_messages,
                 self._context_window_before_minutes,
                 self._context_window_after_minutes,

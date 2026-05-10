@@ -106,6 +106,7 @@ class QueueItem:
     file_id: str
     chat_id: str
     system_version: str
+    message_id: int
     cluster_id: str
     is_representative: bool
     status: QueueStatus
@@ -118,6 +119,8 @@ class QueueItem:
 
 @dataclass(frozen=True)
 class ChatMessage:
+    chat_id: str
+    message_id: int
     telegram_user_id: str
     display_name: str
     role: UserRole

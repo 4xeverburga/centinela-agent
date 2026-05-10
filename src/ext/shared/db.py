@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS inspections_queue (
     system_version TEXT NOT NULL,
     project_id TEXT NOT NULL,
     chat_id TEXT NOT NULL,
+    message_id INTEGER NOT NULL,
     cluster_id TEXT NOT NULL DEFAULT '',
     is_representative INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'PENDING',
@@ -40,6 +41,8 @@ CREATE TABLE IF NOT EXISTS inspections_queue (
 CREATE TABLE IF NOT EXISTS chat_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id TEXT NOT NULL,
+    chat_id TEXT NOT NULL,
+    message_id INTEGER NOT NULL,
     telegram_user_id TEXT NOT NULL,
     display_name TEXT NOT NULL,
     role TEXT NOT NULL,
@@ -49,7 +52,8 @@ CREATE TABLE IF NOT EXISTS chat_history (
     timestamp TEXT NOT NULL,
     is_included_in_history INTEGER NOT NULL DEFAULT 1,
     rejected_reason TEXT NOT NULL DEFAULT '',
-    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+    FOREIGN KEY (project_id) REFERENCES projects(project_id),
+    UNIQUE (chat_id, message_id)
 );
 
 CREATE TABLE IF NOT EXISTS inspections (

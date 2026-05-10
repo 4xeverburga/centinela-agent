@@ -43,6 +43,7 @@ class IngestPhotoService:
         display_name: str,
         caption: str,
         cluster_id: str,
+        message_id: int,
     ) -> IngestResult:
         project = await self._project_repo.get_active_by_chat(chat_id)
         if project is None:
@@ -60,6 +61,8 @@ class IngestPhotoService:
 
         if sharpness < self._sharpness_min:
             message = ChatMessage(
+                chat_id=chat_id,
+                message_id=message_id,
                 telegram_user_id=telegram_user_id,
                 display_name=display_name,
                 role=role,
@@ -75,6 +78,8 @@ class IngestPhotoService:
             return IngestResult.REJECTED_BLURRY
 
         message = ChatMessage(
+            chat_id=chat_id,
+            message_id=message_id,
             telegram_user_id=telegram_user_id,
             display_name=display_name,
             role=role,
@@ -90,6 +95,7 @@ class IngestPhotoService:
             file_id=file_id,
             chat_id=chat_id,
             system_version=self._system_version,
+            message_id=message_id,
             cluster_id=cluster_id,
             is_representative=True,
             status=QueueStatus.PENDING,
