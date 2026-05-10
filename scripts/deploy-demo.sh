@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# deploy-bot.sh — Upload source, build image, and run the centinela Telegram bot on the AMD droplet.
-# Idempotent: safe to run multiple times. Does NOT touch the demo container.
+# deploy-demo.sh — Upload source, build image, and run the centinela demo API on the AMD droplet.
+# Idempotent: safe to run multiple times. Does NOT touch the bot container.
+#
+# The demo container:
+#   - Runs demo_server.py (Flask) on DEMO_PORT (default 5000, read from .env)
+#   - Mounts the same data volume as the bot (read-only access to the demo DB)
+#   - Exposes DEMO_PORT to the host; ufw rule is opened automatically
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,8 +31,8 @@ scp "${SCP_OPTS[@]}" "$ARCHIVE" "$REMOTE:~/centinela-src.tar.gz"
 echo "==> Uploading .env to droplet"
 scp "${SCP_OPTS[@]}" "$REPO_ROOT/.env" "$REMOTE:~/centinela.env"
 
-echo "==> Building and deploying bot on droplet"
-ssh "${SSH_OPTS[@]}" "$REMOTE" bash <<'REMOTE_SCRIPT'
+echo "==> Building and deploying demo API on droplet"
+ssh "${SSH_OPTS[@]}" "$REMOTE" DEMO_PORT="$DEMO_PORT" bash <<'REMOTE_SCRIPT'
 set -euo pipefail
 
 IMAGE_NAME="centinela-bot"
@@ -41,28 +46,37 @@ tar -xzf ~/centinela-src.tar.gz -C "$SRC_DIR"
 echo "  -> Building image on droplet"
 docker build -f "$SRC_DIR/containers/Containerfile.bot" -t "$IMAGE_NAME" "$SRC_DIR"
 
-echo "  -> Stopping and removing existing bot container (if any)"
-docker stop "$IMAGE_NAME" 2>/dev/null || true
-docker rm   "$IMAGE_NAME" 2>/dev/null || true
+echo "  -> Stopping and removing existing demo container (if any)"
+docker stop centinela-demo 2>/dev/null || true
+docker rm   centinela-demo 2>/dev/null || true
 
 echo "  -> Ensuring data directory exists"
 mkdir -p "$DATA_DIR"
 
-echo "  -> Starting bot container (no public port)"
+echo "  -> Opening firewall port $DEMO_PORT (ufw)"
+if command -v ufw &>/dev/null; then
+  ufw allow "$DEMO_PORT"/tcp || true
+fi
+
+echo "  -> Starting demo API container (port $DEMO_PORT)"
 docker run -d \
-  --name "$IMAGE_NAME" \
+  --name centinela-demo \
   --restart=unless-stopped \
   --env-file ~/centinela.env \
   -e SQLITE_PATH=/app/data/centinela.db \
+  -e DEMO_PORT="$DEMO_PORT" \
   -v "$DATA_DIR:/app/data" \
-  "$IMAGE_NAME"
+  -p "$DEMO_PORT:$DEMO_PORT" \
+  "$IMAGE_NAME" \
+  python src/demo_server.py
 
 echo "  -> Container status"
-docker ps --filter "name=$IMAGE_NAME"
+docker ps --filter "name=centinela-demo"
 REMOTE_SCRIPT
 
 echo "==> Deleting local archive"
 rm -f "$ARCHIVE"
 
 echo "==> Done. Tail logs with:"
-echo "    ssh ${SSH_OPTS[*]} $REMOTE docker logs -f $IMAGE_NAME"
+echo "    ssh ${SSH_OPTS[*]} $REMOTE docker logs -f centinela-demo"
+echo "==> Demo API reachable at: http://$DROPLET_IP:$DEMO_PORT"
