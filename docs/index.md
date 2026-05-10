@@ -15,6 +15,7 @@ This file is the entry point for agents and contributors looking for project con
 | 2026-07-15 | [Entry 1](logbooks/2026-07-15.md#entry-1-full-mvp-implementation-phases-19) | Full MVP implementation — domain, ports, services, SQLite, Telegram, image pipeline, LLM, worker, HITL, report, composition root. |
 | 2026-05-08 | [Entry 1](logbooks/2026-05-08.md#entry-1-vllm-deployment-and-end-to-end-bot-launch) | vLLM nightly deployed on MI300X, Gemma 4 31B serving, Telegram bot running end-to-end. |
 | 2026-05-08 | [Entry 2](logbooks/2026-05-08.md#entry-2-containerfilebot-and-documentation-update) | Containerfile.bot added, README/status/AGENTS.md updated. |
+| 2026-05-10 | [Entry 1](logbooks/2026-05-10.md#entry-1--schema-refactor-inspections_queue-composite-pk-preprocessing-at-ingest) | Schema refactor: queue → inspections_queue, move preprocessing to ingest, fix HITL callback bug, capture photo captions. |
 
 ## Artifacts
 

@@ -30,6 +30,10 @@
 - [x] **[Ever Burga]** vLLM nightly (v0.20.2rc1, ROCm) deployed on MI300X droplet — Gemma 4 31B loaded and serving. See `docs/logbooks/2026-05-08.md`.
 - [x] **[Ever Burga]** Telegram bot (`@C3nt1nel_bot`) running end-to-end locally, connected to live vLLM
 - [x] **[Ever Burga]** `containers/Containerfile.bot` — OCI image for containerised bot deployment
+- [x] **[Ever Burga]** Refactored queue → `inspections_queue` with composite PK `(file_id, system_version)`. Moved preprocessing to ingest time — blurry images rejected before queueing. See `docs/logbooks/2026-05-08.md`.
+- [x] **[Ever Burga]** Fixed HITL callback bug (was using inspection_id as review_id). Improved HITL UX with clear button labels. See `docs/logbooks/2026-05-08.md`.
+- [x] **[Ever Burga]** Fixed media-group caption capture — photo captions now saved to chat_history. See `docs/logbooks/2026-05-08.md`.
+- [x] **[Ever Burga]** Removed `validated_by_admin` from inspections; review state resolved exclusively via `human_reviews` table.
 
 ## Pending
 
