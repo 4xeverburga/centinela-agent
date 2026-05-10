@@ -4,6 +4,9 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="yQCWTcA_rlXxDilYZ3Yb-23" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#F1F8E9;movable=0;resizable=0;rotatable=0;deletable=0;editable=0;locked=1;connectable=0;" value="Generation" vertex="1">
+          <mxGeometry height="419.31" width="265" x="192" y="140.69" as="geometry" />
+        </mxCell>
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-18" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#F3E5F5;" value="" vertex="1">
           <mxGeometry height="150" width="820" x="-363" y="-35" as="geometry" />
         </mxCell>
@@ -225,9 +228,6 @@
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-22" parent="1" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=pod" value="&lt;span style=&quot;color: rgb(153, 153, 153);&quot;&gt;vLLM with Gemma4 31B&lt;/span&gt;" vertex="1">
           <mxGeometry height="48" width="50" x="188" y="12" as="geometry" />
         </mxCell>
-        <mxCell id="yQCWTcA_rlXxDilYZ3Yb-23" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#F1F8E9;" value="Filtering" vertex="1">
-          <mxGeometry height="419.31" width="265" x="192" y="140.69" as="geometry" />
-        </mxCell>
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-25" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#E1F5FE;" value="Assistant Web View" vertex="1">
           <mxGeometry height="75" width="800" x="-353" y="616" as="geometry" />
         </mxCell>
@@ -259,16 +259,19 @@
           <mxGeometry height="59" width="59.5" x="277" y="624" as="geometry" />
         </mxCell>
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-39" parent="1" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;fillColor=#FF6A00;strokeColor=none;shape=mxgraph.alibaba_cloud.image_recognition;" value="" vertex="1">
-          <mxGeometry height="87.79" width="90" x="229.5" y="300.71" as="geometry" />
+          <mxGeometry height="87.79" width="90" x="264.5" y="274.4" as="geometry" />
         </mxCell>
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-40" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;span style=&quot;color: rgb(153, 153, 153);&quot;&gt;Enriched json generation with context window&amp;nbsp;&lt;/span&gt;" vertex="1">
-          <mxGeometry height="30" width="119" x="215" y="258.5" as="geometry" />
+          <mxGeometry height="30" width="119" x="250" y="232.19" as="geometry" />
         </mxCell>
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-41" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];rounded=1;absoluteArcSize=1;arcSize=2;html=1;strokeColor=none;gradientColor=none;shadow=0;dashed=0;fontSize=12;fontColor=#9E9E9E;align=left;verticalAlign=top;spacing=10;spacingTop=-4;whiteSpace=wrap;fillColor=#E1F5FE;" value="Persistence layer" vertex="1">
           <mxGeometry height="45" width="811" x="-356" y="551" as="geometry" />
         </mxCell>
         <mxCell id="yQCWTcA_rlXxDilYZ3Yb-42" parent="1" style="text;whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot; data-mx-given-colors=&quot;{&amp;quot;color&amp;quot;:&amp;quot;light-dark(rgb(0, 0, 0), rgb(0, 0, 0))&amp;quot;}&quot;&gt; AMD MI300X&lt;/span&gt;" vertex="1">
           <mxGeometry height="36" width="99" x="353" y="-32" as="geometry" />
+        </mxCell>
+        <mxCell id="yQCWTcA_rlXxDilYZ3Yb-43" parent="1" style="outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.workdocs;fillColor=#D16A28;gradientColor=#F58435;gradientDirection=north;" value="" vertex="1">
+          <mxGeometry height="94.5" width="82.5" x="268.25" y="366.44" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
