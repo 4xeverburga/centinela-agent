@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime
 
-import httpx
+from openai import AsyncOpenAI
 from pydantic import ValidationError
 
 from app.domain.entities import (
@@ -27,9 +27,47 @@ logger = logging.getLogger(__name__)
 class VllmLLMInspector(LLMInspector):
     def __init__(self, base_url: str, model: str, api_key: str):
         self._model = model
-        self._base_url = base_url.rstrip("/")
-        self._api_key = api_key
-        self._guided_json = InspectionPayload.model_json_schema()
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+
+    @staticmethod
+    def _normalize_response(d: dict) -> dict:
+        """Map common field aliases the model uses to the expected schema keys."""
+        # category
+        if "category" not in d:
+            for key in ("equipment_classification", "equipment_type", "tipo_equipo", "type"):
+                if key in d:
+                    val = d[key]
+                    d["category"] = val if isinstance(val, str) else str(val)
+                    break
+
+        # location_ref
+        if "location_ref" not in d:
+            for key in ("location", "ubicacion", "location_reference"):
+                if key in d:
+                    val = d[key]
+                    d["location_ref"] = val if isinstance(val, str) else (
+                        val.get("area") or val.get("reference") or str(val)
+                    )
+                    break
+
+        # ocr — flatten nested ocr.text_detected
+        if "ocr" in d and isinstance(d["ocr"], dict):
+            d["ocr"] = d["ocr"].get("text_detected") or d["ocr"].get("text") or ""
+
+        # status — normalise value
+        status = d.get("status", "")
+        if isinstance(status, str) and status.upper() not in ("DURANTE", "DESPUES"):
+            d["status"] = "DURANTE"
+
+        # defaults for optional fields
+        d.setdefault("observation", "")
+        d.setdefault("system_observation", "")
+        d.setdefault("anomaly_reason", "")
+        d.setdefault("is_suspicious", False)
+        d.setdefault("ocr", "")
+        d.setdefault("category", "UNKNOWN")
+        d.setdefault("location_ref", "")
+        return d
 
     async def inspect(
         self,
@@ -72,25 +110,25 @@ class VllmLLMInspector(LLMInspector):
             {"role": "user", "content": content},
         ]
 
-        payload = {
-            "model": self._model,
-            "messages": messages,
-            "temperature": 0.1,
-            "guided_json": self._guided_json,
-        }
+        response = await self._client.chat.completions.create(
+            model=self._model,
+            messages=messages,
+            temperature=0.1,
+            timeout=120.0,
+        )
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            resp = await client.post(
-                f"{self._base_url}/chat/completions",
-                json=payload,
-                headers={"Authorization": f"Bearer {self._api_key}"},
-            )
-            resp.raise_for_status()
-
-        raw = resp.json()["choices"][0]["message"]["content"]
+        raw = response.choices[0].message.content or ""
 
         try:
-            parsed_dict = json.loads(raw)
+            # Strip markdown fences if present
+            text = raw.strip()
+            if text.startswith("```"):
+                text = text.split("```", 2)[1]
+                if text.startswith("json"):
+                    text = text[4:]
+                text = text.rsplit("```", 1)[0].strip()
+            parsed_dict = json.loads(text)
+            parsed_dict = self._normalize_response(parsed_dict)
             payload_obj = InspectionPayload.model_validate(parsed_dict)
         except (json.JSONDecodeError, ValidationError) as exc:
             logger.error("Failed to parse LLM response: %s", raw[:500])

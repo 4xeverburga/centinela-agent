@@ -31,6 +31,18 @@ SYSTEM_PROMPT = (
 )
 
 
+_SCHEMA_EXAMPLE = """{
+  "category": "<tipo de equipo, ej: Cámara PTZ, Panel de Acceso, Sensor PIR>",
+  "status": "<DURANTE | DESPUES>",
+  "location_ref": "<referencia de ubicación en el plano>",
+  "ocr": "<texto extraído de la imagen, vacío si no hay>",
+  "observation": "<comentario del técnico relacionado, vacío si no hay>",
+  "system_observation": "<observación técnica del sistema, vacío si no hay>",
+  "is_suspicious": <true | false>,
+  "anomaly_reason": "<motivo si is_suspicious=true, vacío si no>"
+}"""
+
+
 def build_user_prompt(
     chat_window_text: str,
     context_summary: str,
@@ -44,6 +56,8 @@ def build_user_prompt(
         "3. Ubica el equipo en el plano usando las referencias visuales.\n"
         "4. Si la categoría rompe el patrón del contexto, marca is_suspicious=true.\n"
         "5. Genera observation solo si hay un comentario humano relacionado.\n"
-        "6. Genera system_observation si detectas fallas visuales no mencionadas.\n"
-        "Responde EXCLUSIVAMENTE con el JSON estructurado."
+        "6. Genera system_observation si detectas fallas visuales no mencionadas.\n\n"
+        "IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido usando "
+        "EXACTAMENTE estos campos (sin campos adicionales):\n"
+        f"{_SCHEMA_EXAMPLE}"
     )

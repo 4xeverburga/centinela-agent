@@ -1,6 +1,7 @@
 import logging
 
 from telegram import ChatMember, Update
+from telegram.error import BadRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -236,4 +237,10 @@ class TelegramBotController:
 
         answer = "confirmed" if action == "confirm" else "rejected"
         await self._hitl.execute(review_id, answer, reviewer_id)
-        await query.edit_message_text("Revisi\u00f3n " + str(review_id) + ": " + answer)
+        try:
+            await query.edit_message_text("Revisión " + str(review_id) + ": " + answer)
+        except BadRequest as e:
+            if "not modified" in str(e).lower():
+                pass  # duplicate button press, already updated
+            else:
+                raise
