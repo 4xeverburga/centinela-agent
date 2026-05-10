@@ -62,3 +62,6 @@ class Config(BaseSettings):
 
     # Versioning
     system_version: str = Field(alias="SYSTEM_VERSION")
+
+    # Demo API
+    demo_api_key: str = Field(alias="DEMO_API_KEY")
