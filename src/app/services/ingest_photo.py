@@ -42,6 +42,7 @@ class IngestPhotoService:
         telegram_user_id: str,
         display_name: str,
         caption: str,
+        cluster_id: str,
     ) -> IngestResult:
         project = await self._project_repo.get_active_by_chat(chat_id)
         if project is None:
@@ -65,6 +66,7 @@ class IngestPhotoService:
                 text=caption,
                 timestamp=self._clock.now(),
                 file_id=file_id,
+                cluster_id=cluster_id,
                 is_included_in_history=False,
                 rejected_reason="blurry",
             )
@@ -79,6 +81,7 @@ class IngestPhotoService:
             text=caption,
             timestamp=self._clock.now(),
             file_id=file_id,
+            cluster_id=cluster_id,
         )
         await self._history_repo.save(project.project_id, message)
 
@@ -87,7 +90,7 @@ class IngestPhotoService:
             file_id=file_id,
             chat_id=chat_id,
             system_version=self._system_version,
-            cluster_id="",
+            cluster_id=cluster_id,
             is_representative=True,
             status=QueueStatus.PENDING,
             attempts=0,

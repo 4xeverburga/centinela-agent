@@ -80,7 +80,7 @@ async def test_ingest_photo_queues_item():
         project_repo, queue_repo, history_repo, user_repo,
         telegram, image_processor, clock, 50.0, "may2026:0.1",
     )
-    result = await svc.execute("123", "file-abc", "u2", "Tech Juan", "camera maintenance")
+    result = await svc.execute("123", "file-abc", "u2", "Tech Juan", "camera maintenance", "")
 
     assert result == IngestResult.QUEUED
     item = await queue_repo.get_by_key("file-abc", "may2026:0.1")

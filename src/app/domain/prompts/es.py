@@ -20,8 +20,7 @@ _SCHEMA_EXAMPLE = """{{
 }}"""
 
 USER_PROMPT_TEMPLATE = (
-    "[Ventana de Chat]\n{chat_window}\n\n"
-    "[Metadata de Contexto]\n{context_summary}\n\n"
+    "[Contexto cronológico del proyecto]\n{context}\n\n"
     "Analiza la imagen adjunta siguiendo estas instrucciones:\n"
     "1. Clasifica el equipo y determina el estado de la intervención:\n"
     "   - DURANTE: foto tomada MIENTRAS se realiza el trabajo (instalación en progreso, "
@@ -39,9 +38,7 @@ USER_PROMPT_TEMPLATE = (
     + _SCHEMA_EXAMPLE
 )
 
-CONTEXT_SUMMARY_HEADER = "Inspecciones recientes procesadas:"
-NO_INSPECTIONS = "No hay inspecciones previas en este proyecto."
-NO_CHAT_MESSAGES = "Sin mensajes recientes del técnico."
+NO_CONTEXT = "Sin mensajes ni inspecciones previas en este proyecto."
 
 ONBOARDING = (
     "\U0001f477 *Hola, soy Centinela* \u2014 tu asistente de inspección de instalaciones electrónicas.\n\n"

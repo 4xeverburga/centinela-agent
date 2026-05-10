@@ -10,7 +10,7 @@ class LLMInspector(ABC):
         image: ImagePayload,
         floor_plan_image: bytes,
         chat_window: list[ChatMessage],
-        recent_inspections_json: list[dict],
+        inspections_by_file_id: dict[str, dict],
         project_id: str,
         system_version: str,
         image_file_id: str,

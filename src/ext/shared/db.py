@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS chat_history (
     role TEXT NOT NULL,
     text TEXT NOT NULL,
     file_id TEXT NOT NULL DEFAULT '',
+    cluster_id TEXT NOT NULL DEFAULT '',
     timestamp TEXT NOT NULL,
     is_included_in_history INTEGER NOT NULL DEFAULT 1,
     rejected_reason TEXT NOT NULL DEFAULT '',

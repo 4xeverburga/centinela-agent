@@ -16,8 +16,7 @@ from app.domain.inspection_schema import InspectionPayload
 from app.domain.prompts import get_locale
 from app.ports.llm_inspector import LLMInspector
 from app.services.prompt import (
-    build_chat_window_text,
-    build_context_summary,
+    build_chronological_context,
     build_user_prompt,
 )
 
@@ -74,20 +73,15 @@ class VllmLLMInspector(LLMInspector):
         image: ImagePayload,
         floor_plan_image: bytes,
         chat_window: list[ChatMessage],
-        recent_inspections_json: list[dict],
+        inspections_by_file_id: dict[str, dict],
         project_id: str,
         system_version: str,
         image_file_id: str,
     ) -> InspectionRecord:
         from app.domain.entities import InspectionRecord as IR
 
-        context_summary = build_context_summary(
-            [self._dict_to_stub(d) for d in recent_inspections_json]
-            if recent_inspections_json else [],
-            self._locale,
-        )
-        chat_text = build_chat_window_text(chat_window, self._locale)
-        user_prompt = build_user_prompt(chat_text, context_summary, self._locale)
+        context = build_chronological_context(chat_window, inspections_by_file_id, self._locale)
+        user_prompt = build_user_prompt(context, self._locale)
 
         image_b64 = base64.b64encode(image.data).decode("utf-8")
 
@@ -163,19 +157,4 @@ class VllmLLMInspector(LLMInspector):
             created_at=datetime.now(),
         )
 
-    @staticmethod
-    def _dict_to_stub(d: dict) -> InspectionRecord:
-        return InspectionRecord(
-            project_id="",
-            image_file_id="",
-            system_version="",
-            item_id="",
-            category=d.get("category", ""),
-            inspection_status=InspectionStatus(d.get("status", "DURANTE")),
-            location_on_map=d.get("location_ref", ""),
-            ocr_data="",
-            tech_observation=d.get("tech_observation", ""),
-            ai_system_observation=d.get("system_observation", ""),
-            is_suspicious=False,
-            created_at=datetime.now(),
-        )
+

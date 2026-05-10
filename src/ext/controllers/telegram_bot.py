@@ -201,7 +201,8 @@ class TelegramBotController:
         display = update.effective_user.full_name if update.effective_user else ""
         file_id = update.effective_message.photo[-1].file_id
         caption = update.effective_message.caption or ""
-        result = await self._ingest_photo.execute(chat_id, file_id, user_id, display, caption)
+        cluster_id = update.effective_message.media_group_id or ""
+        result = await self._ingest_photo.execute(chat_id, file_id, user_id, display, caption, cluster_id)
         if result == IngestResult.REJECTED_BLURRY:
             await self._telegram.send_message(chat_id, self._locale.BLURRY_IMAGE)
 

@@ -20,8 +20,7 @@ _SCHEMA_EXAMPLE = """{{
 }}"""
 
 USER_PROMPT_TEMPLATE = (
-    "[Chat Window]\n{chat_window}\n\n"
-    "[Context Metadata]\n{context_summary}\n\n"
+    "[Chronological project context]\n{context}\n\n"
     "Analyze the attached image following these instructions:\n"
     "1. Classify the equipment and determine the intervention state:\n"
     "   - DURANTE: photo taken WHILE the work is in progress (installation ongoing, "
@@ -39,9 +38,7 @@ USER_PROMPT_TEMPLATE = (
     + _SCHEMA_EXAMPLE
 )
 
-CONTEXT_SUMMARY_HEADER = "Recent processed inspections:"
-NO_INSPECTIONS = "No previous inspections in this project."
-NO_CHAT_MESSAGES = "No recent messages from the technician."
+NO_CONTEXT = "No previous messages or inspections in this project."
 
 ONBOARDING = (
     "\U0001f477 *Hi, I'm Centinela* \u2014 your electronic installation inspection assistant.\n\n"

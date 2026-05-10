@@ -124,6 +124,7 @@ class ChatMessage:
     text: str
     timestamp: datetime
     file_id: str = ""
+    cluster_id: str = ""
     is_included_in_history: bool = True
     rejected_reason: str = ""
 
