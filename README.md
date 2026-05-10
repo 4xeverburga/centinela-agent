@@ -1,5 +1,7 @@
 # Centinela
 
+> **🤖 Try the live bot:** [**@C3nt1nel_bot on Telegram**](https://t.me/C3nt1nel_bot) — for the full experience, **add the bot to a group chat** (Centinela is designed for technician crews collaborating in a per-site group, not 1:1 DMs). Once added, an authorized admin runs `/iniciar <project_name>` to start an inspection session.
+
 Telegram bot + multimodal AI agent that turns field photos and chat messages from electronic security maintenance crews into structured inspection reports for retail clients (Cencosud, Metro). MVP built for the AMD Developer Hackathon.
 
 ## Business Justification
